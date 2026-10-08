@@ -60,3 +60,8 @@ a{color:var(--accent)}
 .legal h2{font-size:18px;margin:18px 0 0}
 .legal p,.legal li{color:var(--ink);max-width:68ch}
 .draft{background:#FFF1D2;color:#5A3A00;border-radius:10px;padding:12px 14px;font-weight:600}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-size:14px;font-weight:600;cursor:pointer;align-self:flex-start}
+.linkbtn:hover{text-decoration:underline}
+.input.code{font-family:var(--f-mono);font-size:22px;letter-spacing:.4em;text-align:center}

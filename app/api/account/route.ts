@@ -8,7 +8,8 @@ import { authed } from '@/lib/route';
 export const GET = authed(async (_req, { user, companyId, role }) => {
   const members = await sql`select u.id, u.name, u.email, m.role from memberships m join users u on u.id = m.user_id where m.company_id = ${companyId} order by m.created_at`;
   const invites = await sql`select id, email, created_at from invites where company_id = ${companyId} and accepted_at is null order by created_at desc`;
-  return json({ user, companyId, role, members, invites, features: { advisor: !!process.env.ANTHROPIC_API_KEY, email: emailConfigured() } });
+  const [me] = await sql`select password_hash is not null as has_password, google_sub is not null as google from users where id = ${user.id}`;
+  return json({ user: { ...user, hasPassword: me.has_password, google: me.google }, companyId, role, members, invites, features: { advisor: !!process.env.ANTHROPIC_API_KEY, email: emailConfigured() } });
 });
 
 export const PATCH = authed(async (req, { user }) => {
@@ -19,7 +20,7 @@ export const PATCH = authed(async (req, { user }) => {
   }
   if (b?.newPassword !== undefined) {
     const [u] = await sql`select password_hash from users where id = ${user.id}`;
-    if (!(await verifyPassword(String(b.currentPassword || ''), u.password_hash))) return fail('Your current password is wrong.', 401);
+    if (u.password_hash && !(await verifyPassword(String(b.currentPassword || ''), u.password_hash))) return fail('Your current password is wrong.', 401);
     if (String(b.newPassword).length < 8) return fail('Use a password of at least 8 characters.');
     await sql`update users set password_hash = ${await hashPassword(String(b.newPassword))} where id = ${user.id}`;
     await audit(user.id, null, 'password_changed');
@@ -29,9 +30,9 @@ export const PATCH = authed(async (req, { user }) => {
 
 /** Deletes the account. Companies where this user is the only member are deleted too. */
 export const DELETE = authed(async (req, { user }) => {
-  const b = await body<{ password?: string }>(req);
+  const b = await body<{ password?: string; confirmEmail?: string }>(req);
   const [u] = await sql`select password_hash from users where id = ${user.id}`;
-  if (!(await verifyPassword(String(b?.password || ''), u.password_hash))) return fail('Your password is wrong.', 401);
+  if (u.password_hash ? !(await verifyPassword(String(b?.password || ''), u.password_hash)) : String(b?.confirmEmail || '').toLowerCase() !== user.email) return fail(u.password_hash ? 'Your password is wrong.' : 'Type your email address exactly to confirm.', 401);
   await sql.begin(async (tx) => {
     await tx`delete from companies c where exists (select 1 from memberships m where m.company_id = c.id and m.user_id = ${user.id})
       and (select count(*) from memberships m2 where m2.company_id = c.id) = 1`;

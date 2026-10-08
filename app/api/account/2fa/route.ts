@@ -22,7 +22,7 @@ export const POST = authed(async (req, { user }) => {
   }
   if (b?.action === 'disable') {
     const [u] = await sql`select password_hash, totp_secret from users where id = ${user.id}`;
-    if (!(await verifyPassword(String(b.password || ''), u.password_hash))) return fail('Your password is wrong.', 401);
+    if (u.password_hash && !(await verifyPassword(String(b.password || ''), u.password_hash))) return fail('Your password is wrong.', 401);
     if (!u.totp_secret || !verifyTotp(u.totp_secret, String(b.code || ''))) return fail('That code didn’t work.');
     await sql`update users set totp_enabled = false, totp_secret = null where id = ${user.id}`;
     await audit(user.id, null, '2fa_disabled');

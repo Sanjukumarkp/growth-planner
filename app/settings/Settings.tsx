@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { api } from '@/components/useApi';
 import { Logo } from '@/components/AuthShell';
 
-type Acct = { user: { name: string; email: string; totp_enabled: boolean }; role: string; members: { id: string; name: string; email: string; role: string }[]; invites: { id: string; email: string }[]; features: { advisor: boolean; email: boolean } };
+type Acct = { user: { name: string; email: string; totp_enabled: boolean; hasPassword: boolean; google: boolean }; role: string; members: { id: string; name: string; email: string; role: string }[]; invites: { id: string; email: string }[]; features: { advisor: boolean; email: boolean } };
 
 function Msg({ m }: { m: { ok?: string; err?: string } }) {
   return m.err ? <div className="err" role="alert">{m.err}</div> : m.ok ? <div className="ok" role="status">{m.ok}</div> : null;
@@ -31,21 +31,22 @@ export default function Settings() {
         <form className="row" onSubmit={run('name', async (f) => { await api('/api/account', 'PATCH', { name: f.get('name') }); })}>
           <input className="input" style={{ flex: 1, minWidth: 200 }} name="name" defaultValue={a.user.name} aria-label="Your name" />
           <button className="btn">Save name</button></form>
-        <p className="small muted">Signed in as {a.user.email}</p>
+        <p className="small muted">Signed in as {a.user.email}{a.user.google ? ' · Google sign-in linked' : ''}</p>
       </section>
 
       <section className="card"><h2>Password</h2><Msg m={m.pw || {}} />
-        <form className="list" style={{ gap: 10 }} onSubmit={run('pw', async (f) => { await api('/api/account', 'PATCH', { currentPassword: f.get('cur'), newPassword: f.get('new') }); return 'Password changed.'; })}>
-          <div className="field"><label htmlFor="cur">Current password</label><input className="input" id="cur" name="cur" type="password" autoComplete="current-password" required /></div>
+        {!a.user.hasPassword && <p className="muted">You sign in with {a.user.google ? 'Google or ' : ''}an email code. Set a password if you’d also like to sign in with one.</p>}
+        <form className="list" style={{ gap: 10 }} onSubmit={run('pw', async (f) => { await api('/api/account', 'PATCH', { currentPassword: f.get('cur'), newPassword: f.get('new') }); return a.user.hasPassword ? 'Password changed.' : 'Password set.'; })}>
+          {a.user.hasPassword && <div className="field"><label htmlFor="cur">Current password</label><input className="input" id="cur" name="cur" type="password" autoComplete="current-password" required /></div>}
           <div className="field"><label htmlFor="new">New password</label><input className="input" id="new" name="new" type="password" autoComplete="new-password" minLength={8} required /></div>
-          <div><button className="btn">Change password</button></div></form>
+          <div><button className="btn">{a.user.hasPassword ? 'Change password' : 'Set password'}</button></div></form>
       </section>
 
       <section className="card"><h2>Two-step sign-in</h2><Msg m={m.tfa || {}} />
         {a.user.totp_enabled ? <>
           <p className="ok">On. You’ll need a code from your authenticator app each time you sign in.</p>
           <form className="row" onSubmit={run('tfa', async (f) => { await api('/api/account/2fa', 'POST', { action: 'disable', password: f.get('password'), code: f.get('code') }); return 'Two-step sign-in is off.'; })}>
-            <input className="input" style={{ flex: 1, minWidth: 160 }} name="password" type="password" placeholder="Password" aria-label="Password" required />
+            {a.user.hasPassword && <input className="input" style={{ flex: 1, minWidth: 160 }} name="password" type="password" placeholder="Password" aria-label="Password" required />}
             <input className="input" style={{ width: 130 }} name="code" inputMode="numeric" placeholder="6-digit code" aria-label="Code" required />
             <button className="btn">Turn off</button></form>
         </> : qr ? <>
@@ -74,8 +75,9 @@ export default function Settings() {
         <p className="muted">Download everything we store about you and your company, or delete your account. Deleting is permanent.</p>
         <div className="row"><a className="btn" href="/api/export">Download my data (JSON)</a></div>
         <Msg m={m.del || {}} />
-        <form className="row" onSubmit={run('del', async (f) => { await api('/api/account', 'DELETE', { password: f.get('password') }); location.href = '/login'; })}>
-          <input className="input" style={{ flex: 1, minWidth: 200 }} name="password" type="password" placeholder="Your password, to confirm" aria-label="Password to confirm deletion" required />
+        <form className="row" onSubmit={run('del', async (f) => { await api('/api/account', 'DELETE', { password: f.get('password'), confirmEmail: f.get('confirmEmail') }); location.href = '/login'; })}>
+          {a.user.hasPassword ? <input className="input" style={{ flex: 1, minWidth: 200 }} name="password" type="password" placeholder="Your password, to confirm" aria-label="Password to confirm deletion" required />
+            : <input className="input" style={{ flex: 1, minWidth: 200 }} name="confirmEmail" type="email" placeholder={`Type ${a.user.email} to confirm`} aria-label="Type your email to confirm deletion" required />}
           <button className="btn danger">Delete my account</button></form>
         <p className="small muted">If you’re the only member, your company’s plan is deleted too.</p>
       </section>

@@ -92,4 +92,18 @@ create table if not exists audit_log (
   at timestamptz not null default now()
 );
 create index if not exists audit_company_idx on audit_log(company_id, at);
+
+-- Passwordless sign-in (email code, Google)
+alter table users alter column password_hash drop not null;
+alter table users add column if not exists google_sub text unique;
+
+create table if not exists login_codes (
+  id bigserial primary key,
+  email text not null,
+  code_hash text not null,
+  attempts integer not null default 0,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists login_codes_email_idx on login_codes(email, created_at);
 `;

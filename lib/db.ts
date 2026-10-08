@@ -12,7 +12,9 @@ function client() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
   const local = /localhost|127\.0\.0\.1|host=\/tmp/.test(url);
-  return postgres(url, { max: 5, idle_timeout: 20, ssl: local ? false : 'require', onnotice: () => {} });
+  // Supabase's transaction pooler (port 6543) does not support prepared statements.
+  const pooled = /pooler\.supabase\.com|:6543\//.test(url);
+  return postgres(url, { max: 5, idle_timeout: 20, ssl: local ? false : 'require', prepare: !pooled, onnotice: () => {} });
 }
 
 export const sql: postgres.Sql = globalThis.__gpSql ?? (globalThis.__gpSql = client());
