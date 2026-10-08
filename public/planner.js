@@ -326,15 +326,7 @@ function vWeek(){
   ${needsClose()?`<div class="alert warn" style="align-items:center">${ICON.warn}<div style="flex:1">It’s a new month. Close ${MONL[new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1).getMonth()]} so your forecast uses real figures.</div><button class="btn sm" data-act="close">Close the month</button></div>`:''}
   <div class="grid g-main">
     <section class="card raised">
-      <div class="card-head"><h2>This week’s 3 moves</h2><div class="row"><span class="pill ${doneN===3?'good':'accent'}">${doneN} of 3 done</span><button class="btn ghost sm" data-act="reroll" title="Pick new moves from your latest data">Refresh</button></div></div>
-      <div class="moves">${wk.moves.map((m,i)=>`
-        <div class="move ${m.done?'done':''}">
-          <button class="check" data-act="move" data-id="${m.id}" aria-pressed="${m.done}" aria-label="Mark done: ${esc(m.t)}">${ICON.tick}</button>
-          <div class="body"><div class="row" style="gap:8px;margin-bottom:2px"><span class="n">0${i+1}</span><span class="pill">${esc(m.tag)}</span></div><div class="t">${esc(m.t)}</div><div class="why">${esc(m.why)}</div></div>
-          ${m.act?`<button class="btn sm" data-act="${m.act}">Do it</button>`:m.go?`<button class="btn sm" data-act="nav" data-v="${m.go}">Open</button>`:''}
-        </div>`).join('')}
-      ${doneN===3?`<div class="cleared">${ICON.tick.replace('<svg','<svg width="22" height="22"')}<span>Week cleared. See you Monday with three new moves.</span></div>`:''}
-      </div>
+      ${movesCard(wk)}
     </section>
     <section class="card">
       <div class="card-head"><h2>Cash pulse</h2><button class="btn ghost sm" data-act="nav" data-v="cash">Forecast ${ICON.arrow}</button></div>
@@ -375,6 +367,58 @@ function vWeek(){
   </section>`;
 }
 function emptyState(tone,icon,title,sub,btn=''){return `<div class="es"><div class="es-ic ${tone}">${icon}</div><b>${title}</b><span>${sub}</span>${btn}</div>`}
+/* ---------- guided weekly moves ---------- */
+const GO_LABEL={cash:'Open Cash',compliance:'Open Compliance',team:'Open Team',plan:'Open Plan',advisor:'Open Advisor',week:'Open'};
+function howFor(m){
+  const t=(m.t||'').toLowerCase();
+  if(/^file /.test(t))return ['Open Compliance to see the exact form and its due date.','Send your sales and purchase details to your CA, or file it yourself on the government portal.','Come back here and tap “Mark as done”.'];
+  if(/^chase /.test(t))return ['Call or WhatsApp the customer today. Mention the invoice number and the amount.','Agree a date they will pay by, or ask for part of it now.','When the money arrives, mark the invoice “Paid” in Cash.'];
+  if(/a month to cut or bring in/.test(t))return ['Open Cash and look at your biggest monthly costs.','Pick one cost to cut, delay or renegotiate, or one way to bring in more cash.','Try it in the “What if…” panel to see how many months it adds.'];
+  if(/close the books/.test(t))return ['Tap “Close the month” below.','Enter last month’s sales, spend and bank balance, or upload your bank statement.','Save. Your runway and forecast update straight away.'];
+  if(/^unblock/.test(t))return ['Open Team and find this task.','Finish it, hand it to someone else, or move the due date.','Tick it off there once it is finished.'];
+  if(/talk to 5 people/.test(t))return ['Write down 5 people who have this problem: friends of friends, LinkedIn, local groups.','Ask how they deal with it today and what it costs them. Don’t pitch yet.','Add each person to your first-10 list in Plan.'];
+  if(/one-page site/.test(t))return ['Make a single page: the problem, your fix, and an email sign-up box.','Share it in 3 places where your customers already spend time.','Count the sign-ups after a week.'];
+  if(/pre-pay|letter of intent/.test(t))return ['Pick the 3 people most excited about your idea.','Ask for a small advance payment or a signed letter saying they will buy.','Mark them “Paid” in your first-10 list in Plan.'];
+  if(/message 20 people/.test(t))return ['Make a list of 20 people who match your ideal customer.','Send each a short, personal message asking for a 15-minute chat.','Log the replies in your first-10 list in Plan.'];
+  if(/break-even/.test(t))return ['Open Cash and scroll to the break-even calculator.','Check your price, cost per order and fixed costs.','See how many orders a month you need, and how far you are.'];
+  if(/growth channel/.test(t))return ['Choose one channel: ads, partnerships, marketplaces, referrals.','Write down the budget, the target and the date you will judge it.','Add it as an initiative in Plan so it has an owner and a date.'];
+  if(/investor update/.test(t))return ['Open Advisor and tap “Draft my monthly investor update”.','Check the numbers and add one win and one ask.','Send it to your investors and mentors.'];
+  if(/scorecard/.test(t))return ['List the 3 results this person must deliver in their first year.','Write the skills they need for those results.','Share it with your team in Team for comments.'];
+  if(/dpiit/.test(t))return ['Open Compliance and find Startup India (DPIIT) recognition.','Keep your incorporation certificate and PAN ready.','Apply on the Startup India portal and set the status to “In progress”.'];
+  if(/cash forecast/.test(t))return ['Open Cash and look at the week-by-week line.','Check the lowest point and when it happens.','If it dips below the dashed line, plan a fix this week.'];
+  if(/advisor/.test(t))return ['Open Advisor.','Tap a suggested question or type your own.','Read the answer and note one thing to act on.'];
+  return ['Open the page below.','Do what the move says.','Come back and tap “Mark as done”.'];
+}
+function movesCard(wk){
+  const ms=wk.moves,doneN=ms.filter(m=>m.done).length,total=ms.length;
+  const nextIdx=ms.findIndex(m=>!m.done);
+  const openId=UI.openMove&&ms.some(m=>m.id===UI.openMove)?UI.openMove:(nextIdx>=0?ms[nextIdx].id:null);
+  const coach=!S.seenMovesHelp&&doneN===0;
+  return `<div class="card-head"><div><h2>This week’s 3 moves</h2><p class="small muted" style="margin-top:4px">Your to-do list for this week, picked from your numbers. Do them one at a time, top to bottom.</p></div>
+      <div class="row"><button class="btn ghost sm" data-act="reroll" title="Pick new moves from your latest data">New moves</button></div></div>
+    <div class="mprog" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${doneN}" aria-label="${doneN} of ${total} moves done">
+      ${ms.map((m,i)=>`<i class="${m.done?'on':i===nextIdx?'now':''}"></i>`).join('')}<span>${doneN===total?'All done this week':`${doneN} of ${total} done`}</span></div>
+    ${coach?`<div class="coach" role="note"><div><b>How this works</b><ol><li>Tap a move to see the steps.</li><li>Do it, using the button that takes you to the right page.</li><li>Come back and tap <b>Mark as done</b>. The next move opens.</li></ol></div><button class="btn sm ghost" data-act="coach-ok" aria-label="Dismiss help">Got it</button></div>`:''}
+    <ol class="msteps">${ms.map((m,i)=>{
+      const isOpen=m.id===openId,state=m.done?'done':i===nextIdx?'now':'later';
+      const badge=m.done?'<span class="pill good">Done</span>':i===nextIdx?'<span class="pill accent">Do this now</span>':'<span class="pill">Up next</span>';
+      return `<li class="mstep ${state} ${isOpen?'open':''}">
+        <button class="mhead" data-act="move-open" data-id="${m.id}" aria-expanded="${isOpen}">
+          <span class="mnum" aria-hidden="true">${m.done?ICON.tick:i+1}</span>
+          <span class="mtitle"><span class="mmeta">Step ${i+1} · ${esc(m.tag)}</span><span class="t">${esc(m.t)}</span></span>
+          ${badge}<span class="chev" aria-hidden="true"></span>
+        </button>
+        ${isOpen?`<div class="mbody">
+          <p class="why">${esc(m.why)}</p>
+          ${m.done?'':`<div class="how"><div class="lbl">How to do it</div><ol>${howFor(m).map(h=>`<li>${esc(h)}</li>`).join('')}</ol></div>`}
+          <div class="row mact">
+            ${m.done?`<button class="btn sm ghost" data-act="move" data-id="${m.id}">Undo, not done yet</button>`
+              :`${m.act?`<button class="btn" data-act="${m.act}">Close the month</button>`:m.go?`<button class="btn" data-act="nav" data-v="${m.go}">${GO_LABEL[m.go]||'Open'} ${ICON.arrow}</button>`:''}
+              <button class="btn primary" data-act="move" data-id="${m.id}">${ICON.tick.replace('<svg','<svg width="16" height="16"')} Mark as done</button>`}
+          </div></div>`:''}
+      </li>`}).join('')}</ol>
+    ${doneN===total?`<div class="cleared">${ICON.tick.replace('<svg','<svg width="22" height="22"')}<span>Week cleared. See you Monday with three new moves.</span></div>`:''}`;
+}
 function nudges(){const out=[];const r=S.reminders;
   if(r.monday)out.push({d:addDays(mondayOf(TODAY),7),t:'Monday plan: 3 new moves'});
   if(r.close&&S.profile.stage!=='idea')out.push({d:new Date(TODAY.getFullYear(),TODAY.getMonth()+1,1),t:`Close ${MONL[TODAY.getMonth()]}`});
@@ -547,11 +591,13 @@ function noSalesPath(){
   const sigN=sig.filter(s=>s[0]).length;
   return `<section class="card raised"><div class="card-head"><div><h2>The no-sales path</h2><p class="small muted" style="margin-top:4px">Five steps from idea to first revenue. Do them in order.</p></div><span class="pill pop">No sales yet</span></div>
   <div class="path">
-   <div class="step ${ck>=4?'ok':''}"><div class="dot">${ck>=4?ICON.tick.replace('<svg','<svg width="20" height="20"'):1}</div><div class="body"><h3>Test the idea</h3><p class="small muted">${ck} of 6 done</p>
+   <div class="step ${ck>=4?'ok':''}"><div class="dot">${ck>=4?ICON.tick.replace('<svg','<svg width="20" height="20"'):1}</div><div class="body"><h3>Test the idea</h3><p class="small muted">${ck} of 6 done · Tick each one once it’s true for you. Tap the circle or the words.</p>
      <div class="checklist">${checks.map(([k,t])=>`<label class="cl"><button class="check ${S.ideaChecks[k]?'on':''}" data-act="idea-check" data-k="${k}" aria-pressed="${!!S.ideaChecks[k]}" aria-label="${esc(t)}">${ICON.tick}</button>${t}</label>`).join('')}</div></div></div>
    <div class="step ${launchTotal()>0?'ok':''}"><div class="dot">${launchTotal()>0?ICON.tick.replace('<svg','<svg width="20" height="20"'):2}</div><div class="body"><h3>Know the cost to launch</h3><p class="small muted">${inr(launchTotal())} including a 15% buffer. <button class="btn sm ghost" data-act="nav" data-v="cash">Edit in Cash</button></p></div></div>
    <div class="step ${paid>=10?'ok':''}"><div class="dot">${paid>=10?ICON.tick.replace('<svg','<svg width="20" height="20"'):3}</div><div class="body"><h3>Find the first 10 customers</h3><p class="small muted">${paid} paid · ${S.first10.filter(c=>c.n).length} on the list</p>
-     <div class="ten">${S.first10.map((c,i)=>`<div class="slot ${c.s==='Paid'?'paid':''}"><span class="no">${i+1}</span><input id="f10-${i}" data-ten="${i}" data-f="n" value="${esc(c.n)}" placeholder="Name or company" aria-label="Customer ${i+1}"><select id="f10s-${i}" data-ten="${i}" data-f="s" aria-label="Status">${['Lead','Talked','Trial','Paid'].map(s=>`<option ${c.s===s?'selected':''}>${s}</option>`).join('')}</select></div>`).join('')}</div></div></div>
+     <div class="tenhelp">Write down people or companies who could buy. As you talk to them, move each one along: <b>Lead</b> (on your list) → <b>Talked</b> (had a conversation) → <b>Trial</b> (trying it) → <b>Paid</b>.</div>
+     <div class="tensum">${['Lead','Talked','Trial','Paid'].map(st=>`<span class="ts ${st.toLowerCase()}">${st} <b>${S.first10.filter(c=>c.n&&c.s===st).length}</b></span>`).join('')}</div>
+     <div class="ten">${S.first10.map((c,i)=>`<div class="slot ${c.s==='Paid'?'paid':''}"><span class="no">${i+1}</span><input id="f10-${i}" data-ten="${i}" data-f="n" value="${esc(c.n)}" placeholder="Name or company" aria-label="Customer ${i+1}"><div class="stg" role="group" aria-label="Stage for customer ${i+1}">${['Lead','Talked','Trial','Paid'].map(st=>`<button type="button" class="${c.s===st?'on '+st.toLowerCase():''}" data-act="ten-stage" data-i="${i}" data-s="${st}" aria-pressed="${c.s===st}">${st}</button>`).join('')}</div></div>`).join('')}</div></div></div>
    <div class="step ${r.months>=12?'ok':''}"><div class="dot">${r.months>=12?ICON.tick.replace('<svg','<svg width="20" height="20"'):4}</div><div class="body"><h3>Check your runway</h3><p class="small muted">${r.months>=99?'Add your monthly spend in Cash to see this.':`Savings cover about ${trimN(Math.round(r.months*10)/10)} months after launch costs.`}</p></div></div>
    <div class="step ${sigN===3?'ok':''}"><div class="dot">${sigN===3?ICON.tick.replace('<svg','<svg width="20" height="20"'):5}</div><div class="body"><h3>Decide when to quit the job</h3>
      ${p.job==='no'?`<p class="small muted">You’re already full-time on this.</p>`:`
@@ -836,7 +882,11 @@ document.addEventListener('click',async e=>{
    case 'nav':UI.view=b.dataset.v;UI.openTask=null;try{history.replaceState(null,'','#'+UI.view)}catch(_){}render();window.scrollTo(0,0);break;
    case 'menu':UI.menu=!UI.menu;render();break;
    case 'menu-mobile':openLayer(`<h2>${esc(S.profile.company)}</h2><div class="menu" style="position:static;box-shadow:none">${menuHTML().replace(/^<div class="menu" role="menu">|<\/div>$/g,'')}</div><button class="btn" data-act="close-layer">Close</button>`);break;
-   case 'move':{const wk=thisWeek();const m=wk.moves.find(x=>x.id===id);m.done=!m.done;if(m.done)markStreak();save();rerender();if(wk.moves.every(x=>x.done))toast('Week cleared');break}
+   case 'move':{const wk=thisWeek();const m=wk.moves.find(x=>x.id===id);m.done=!m.done;if(m.done){markStreak();S.seenMovesHelp=true;const nx=wk.moves.find(x=>!x.done);UI.openMove=nx?nx.id:null}else UI.openMove=m.id;save();rerender();
+     if(wk.moves.every(x=>x.done))toast('Week cleared. Nice work.');else if(m.done)toast('Done. Next move is open.');break}
+   case 'ten-stage':{const c=S.first10[+b.dataset.i];if(!c.n){toast('Type a name first, then pick a stage.');document.getElementById('f10-'+b.dataset.i)?.focus();break}c.s=b.dataset.s;save();rerender();if(c.s==='Paid')toast(`${c.n} is a paying customer.`);break}
+   case 'move-open':UI.openMove=UI.openMove===id?'__none__':id;rerender();break;
+   case 'coach-ok':S.seenMovesHelp=true;save();rerender();break;
    case 'reroll':{const old=S.weeks[weekKey()].moves.filter(m=>m.done);const fresh=genMoves().filter(n=>!old.some(o=>o.t===n.t));S.weeks[weekKey()].moves=old.concat(fresh).slice(0,3);save();render();toast('Moves refreshed from your latest data');break}
    case 'snooze':{const it=S.items.find(i=>i.id===id);it.due=iso(addDays(parseISO(it.due)<TODAY?TODAY:parseISO(it.due),7));save();render();toast('Moved one week later');break}
    case 'paid':{const r=S[b.dataset.k].find(x=>x.id===id);r.paid=true;if(b.dataset.k==='recv')S.profile.cash+=r.amt;else S.profile.cash-=r.amt;save();render();toast(b.dataset.k==='recv'?`${inr(r.amt)} added to your bank balance`:`${inr(r.amt)} paid`);break}
