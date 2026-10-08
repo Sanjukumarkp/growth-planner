@@ -106,4 +106,21 @@ create table if not exists login_codes (
   created_at timestamptz not null default now()
 );
 create index if not exists login_codes_email_idx on login_codes(email, created_at);
+
+-- Zoho Books connection, one per company. Tokens are encrypted at rest.
+create table if not exists zoho_connections (
+  company_id uuid primary key references companies(id) on delete cascade,
+  accounts_server text not null,
+  api_domain text not null,
+  refresh_token_enc text not null,
+  access_token_enc text,
+  access_expires_at timestamptz,
+  org_id text,
+  org_name text,
+  connected_by uuid references users(id) on delete set null,
+  connected_at timestamptz not null default now(),
+  last_sync_at timestamptz,
+  last_result jsonb,
+  last_error text
+);
 `;

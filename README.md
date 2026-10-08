@@ -16,7 +16,9 @@ Built with Next.js 15 and Postgres. Deploys to Vercel.
 - Data export (JSON) and account deletion
 - Draft privacy policy and terms (have a lawyer review them before launch)
 
-Not built yet: Zoho Books sync, Razorpay billing, WhatsApp reminders, CA multi-client view.
+- Zoho Books sync (read-only): unpaid invoices and bills, bank balance, six months of sales and spend; daily and on demand
+
+Not built yet: Razorpay billing, WhatsApp reminders, CA multi-client view.
 
 ## Run locally
 
@@ -54,6 +56,15 @@ Tables are created on the first request. The cron in `vercel.json` sends reminde
 
 A Google account is linked to an existing Growth Planner account with the same verified email.
 
+### Zoho Books
+
+1. Go to the [Zoho API Console](https://api-console.zoho.in/) (use the console for your data centre; `.in` for India) and add a **Server-based Application**.
+2. Homepage URL: your `APP_URL`. Authorised redirect URI: `https://<your domain>/api/zoho/callback`.
+3. Copy the client ID and secret into `ZOHO_CLIENT_ID` and `ZOHO_CLIENT_SECRET`. Set `ENCRYPTION_KEY` (a long random string) to encrypt stored tokens.
+4. In the app, the owner opens Cash → Month by month → **Connect Zoho Books**.
+
+Access is read-only (`ZohoBooks.settings.READ`, `invoices.READ`, `bills.READ`, `expenses.READ`, `banking.READ`). Each sync replaces rows that came from Zoho and leaves rows typed by hand. Sales and spend in the plan become the average of the last three months. The daily cron also syncs every connection.
+
 ### Email sign-in codes
 
 Codes are 6 digits, valid for 10 minutes, at most 5 tries per code and 5 codes per email per hour. Without email configured, production hides this option; in development the code is shown on screen.
@@ -70,6 +81,8 @@ Codes are 6 digits, valid for 10 minutes, at most 5 tries per code and 5 codes p
 | `ADVISOR_MONTHLY_LIMIT` | No | Questions per company per month (default 50) |
 | `RESEND_API_KEY`, `EMAIL_FROM` | For email | Sign-in codes, password reset, invites, reminders |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth web client |
+| `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` | For Zoho Books | Server-based app from the Zoho API Console |
+| `ENCRYPTION_KEY` | With Zoho | Encrypts stored Zoho tokens (falls back to `CRON_SECRET`) |
 
 ## Layout
 

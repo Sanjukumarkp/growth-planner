@@ -484,3 +484,5 @@ th{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.05em
 }
 .mobile-top{display:none;justify-content:space-between;align-items:center;margin-bottom:6px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.zoho{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface-2)}

@@ -357,7 +357,7 @@ function vWeek(){
     <section class="card">
       <div class="card-head"><h3>${p.stage==='idea'?'Customer follow-ups':'Follow-ups due'}</h3><span class="pill">${p.stage==='idea'?S.first10.filter(c=>c.n&&c.s!=='Paid').length:follow.length}</span></div>
       ${p.stage==='idea'?(S.first10.filter(c=>c.n&&c.s!=='Paid').length?`<div class="list">${S.first10.filter(c=>c.n&&c.s!=='Paid').slice(0,4).map(c=>`<div class="li"><div class="grow"><div class="t">${esc(c.n)}</div><div class="small muted">Status: ${esc(c.s)}. Move them one step this week.</div></div></div>`).join('')}</div>`:`${emptyState('accent',ICON.team,'Start your first-10 list','Add the people you want as your first customers. They show up here to follow up.',`<button class="btn sm primary" data-act="nav" data-v="plan">Open Plan ${ICON.arrow}</button>`)}`)
-      :(follow.length?`<div class="list">${follow.slice(0,4).map(r=>{const dd=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}</div><div class="small" style="color:${dd>0?'var(--bad)':'var(--muted)'}">${inr(r.amt)} · ${dd>0?dd+' days overdue':dd===0?'due today':'due '+fmtD(parseISO(r.due))}</div></div><button class="btn sm" data-act="paid" data-k="recv" data-id="${r.id}">Got paid</button></div>`}).join('')}</div>`:`${emptyState('pop',ICON.cash,'No invoices due','Nothing to chase this week. Add invoices in Cash to track them.',`<button class="btn sm" data-act="nav" data-v="cash">Open Cash</button>`)}`)}
+      :(follow.length?`<div class="list">${follow.slice(0,4).map(r=>{const dd=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}${r.source==='zoho'?' <span class="pill" style="font-size:10px;padding:1px 7px">Zoho</span>':''}</div><div class="small" style="color:${dd>0?'var(--bad)':'var(--muted)'}">${inr(r.amt)} · ${dd>0?dd+' days overdue':dd===0?'due today':'due '+fmtD(parseISO(r.due))}</div></div><button class="btn sm" data-act="paid" data-k="recv" data-id="${r.id}">Got paid</button></div>`}).join('')}</div>`:`${emptyState('pop',ICON.cash,'No invoices due','Nothing to chase this week. Add invoices in Cash to track them.',`<button class="btn sm" data-act="nav" data-v="cash">Open Cash</button>`)}`)}
     </section>
     <section class="card">
       <div class="card-head"><h3>Coming up</h3></div>
@@ -464,7 +464,7 @@ function agingCard(k,title,sub){
   return `<section class="card"><div class="card-head"><div><h2>${title}</h2><p class="small muted">${sub}</p></div><span class="stat" style="text-align:right"><span class="v num">${inr(tot)}</span></span></div>
    <div class="aging">${sums.map((s,i)=>s?`<i style="width:${s/tot*100}%;background:${B[i][1]}" title="${B[i][0]}: ${inr(s)}"></i>`:'').join('')}</div>
    <div class="aging-key">${B.map((b,i)=>`<span><i style="background:${b[1]}"></i>${b[0]} <b class="num">${inr(sums[i])}</b></span>`).join('')}</div>
-   <div class="list" style="margin-top:10px">${rows.length?rows.sort((a,b)=>parseISO(a.due)-parseISO(b.due)).map(r=>{const d=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}</div><div class="small" style="color:${d>0?(d>60?'var(--bad)':'var(--warn)'):'var(--muted)'}">${d>0?d+' days overdue':d===0?'Due today':'Due '+fmtD(parseISO(r.due))}</div></div><b class="num">${inr(r.amt)}</b><button class="btn sm ghost" data-act="paid" data-k="${k}" data-id="${r.id}">${k==='recv'?'Paid':'Done'}</button></div>`}).join(''):`<div class="empty">Nothing here yet.</div>`}</div>
+   <div class="list" style="margin-top:10px">${rows.length?rows.sort((a,b)=>parseISO(a.due)-parseISO(b.due)).map(r=>{const d=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}${r.source==='zoho'?' <span class="pill" style="font-size:10px;padding:1px 7px">Zoho</span>':''}</div><div class="small" style="color:${d>0?(d>60?'var(--bad)':'var(--warn)'):'var(--muted)'}">${d>0?d+' days overdue':d===0?'Due today':'Due '+fmtD(parseISO(r.due))}</div></div><b class="num">${inr(r.amt)}</b><button class="btn sm ghost" data-act="paid" data-k="${k}" data-id="${r.id}">${k==='recv'?'Paid':'Done'}</button></div>`}).join(''):`<div class="empty">Nothing here yet.</div>`}</div>
    <form class="addrow" data-form="${k}"><input class="input" id="${k}-who" name="who" placeholder="${k==='recv'?'Customer':'Supplier'}" required aria-label="Name"><div class="money"><span class="pre">₹</span><input class="input num" id="${k}-amt" name="amt" type="number" placeholder="0" required aria-label="Amount"></div><input class="input" id="${k}-due" name="due" type="date" value="${iso(addDays(TODAY,15))}" aria-label="Due date"><button class="btn primary">Add</button></form>
   </section>`;
 }
@@ -489,12 +489,25 @@ function beCard(){
    <p class="small" style="margin-top:10px">A <b>₹${Math.round(b.price*0.1).toLocaleString('en-IN')}</b> price increase (10%) would cut the orders you need to <b>${cm+b.price*0.1>0?Math.ceil(b.fixed/(cm+b.price*0.1)).toLocaleString('en-IN'):'—'}</b>.</p>`}
   </section>`;
 }
+function ago(t){if(!t)return 'never';const m=Math.round((Date.now()-new Date(t))/6e4);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago'}
+function zohoBlock(){
+  const z=GP.zoho||{},owner=GP.role==='owner';const others=`<div class="connect" style="margin-top:8px">${['Tally','Razorpay','Shopify'].map(n=>`<span>${n} <span class="soon">Soon</span></span>`).join('')}</div>`;
+  if(S&&S.sample)return `<div class="connect"><span>Zoho Books <span class="soon">Your own plan only</span></span></div>`+others;
+  if(z.connected)return `<div class="zoho"><div class="row" style="gap:8px"><span class="pill good">Zoho Books connected</span><span class="small muted">${esc(z.org||'')} · synced ${ago(z.lastSyncAt)}</span></div>
+    ${z.lastError?`<div class="small" style="color:var(--bad);margin-top:6px">${esc(z.lastError)}</div>`:''}
+    ${z.lastResult&&!z.lastError&&!z.lastResult.skipped?`<div class="small muted" style="margin-top:6px">Last sync: ${z.lastResult.invoices??0} unpaid invoices, ${z.lastResult.bills??0} bills${z.lastResult.cash!=null?', bank balance '+inr(z.lastResult.cash):''}, ${z.lastResult.months??0} months of sales and spend.</div>`:''}
+    <div class="row" style="margin-top:8px"><button type="button" class="btn sm" data-act="zoho-sync" ${UI.zohoBusy?'disabled':''}>${UI.zohoBusy?'Syncing…':'Sync now'}</button>${owner?'<button type="button" class="btn sm ghost" data-act="zoho-off">Disconnect</button>':''}</div></div>`+others;
+  if(!z.configured)return `<div class="connect"><span>Zoho Books <span class="soon">Not set up on this server</span></span></div>`+others;
+  return owner?`<div class="zoho"><a class="btn sm primary" href="/api/zoho/connect">Connect Zoho Books</a><div class="small muted" style="margin-top:6px">Read-only. Pulls unpaid invoices and bills, your bank balance, and six months of sales and spend. Syncs every morning.</div></div>`+others
+    :`<div class="small muted">Ask the account owner to connect Zoho Books.</div>`+others;
+}
+async function refreshFromServer(){const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)return;const j=await r.json();serverVersion=j.version;if(!S||!S.sample)S=j.state;GP.zoho=j.zoho;render();paintSync()}
 function historyCard(){
   const h=S.history.slice(-6);
   return `<section class="card"><div class="card-head"><h2>Month by month</h2><button class="btn sm" data-act="close">Close a month</button></div>
    ${h.length>1?`<div id="spark" class="chart-box" style="min-height:150px"></div>`:''}
    <div class="tbl-wrap"><table><thead><tr><th>Month</th><th>Sales</th><th>Spend</th><th>Bank</th></tr></thead><tbody>${h.slice().reverse().map(r=>`<tr><td>${mlabel(r.m)}</td><td>${inr(r.rev)}</td><td>${inr(r.spend)}</td><td><b>${inr(r.cash)}</b></td></tr>`).join('')}</tbody></table></div>
-   <div style="margin-top:14px"><div class="lbl" style="margin-bottom:6px">Update automatically</div><div class="connect">${['Tally','Zoho Books','Razorpay','Shopify','Bank statement'].map(n=>`<span>${n} <span class="soon">Soon</span></span>`).join('')}</div></div>
+   <div style="margin-top:14px"><div class="lbl" style="margin-bottom:6px">Update automatically</div>${zohoBlock()}</div>
   </section>`;
 }
 
@@ -855,6 +868,9 @@ document.addEventListener('click',async e=>{
    case 'reset':UI.menu=false;closeLayer();render();openLayer(`<h2>Delete your data?</h2><p class="muted">This removes your company’s plan, numbers, tasks and advisor history for everyone on your team. It can’t be undone. Export first if you want a copy.</p><div class="row"><button class="btn primary" style="background:var(--bad);border-color:var(--bad)" data-act="reset-yes">Delete and start over</button><button class="btn ghost" data-act="close-layer">Keep my data</button></div>`);break;
    case 'reset-yes':{const r=await fetch('/api/state',{method:'DELETE'});const j=await r.json().catch(()=>({}));if(!r.ok){toast(j.error||'Could not delete the plan');break}serverVersion=j.version;S=null;closeLayer();OB={step:0,a:{}};render();toast('Your plan was deleted');break}
    case 'settings-page':location.href='/settings';break;
+   case 'zoho-sync':{if(UI.zohoBusy)break;UI.zohoBusy=true;rerender();clearTimeout(saveTimer);if(syncMode==='saving'||saving)await pushDb();const r=await fetch('/api/zoho/sync',{method:'POST'});const j=await r.json().catch(()=>({}));UI.zohoBusy=false;
+     if(!r.ok){toast(j.error||'Sync failed');await refreshFromServer();break}const x=j.result||{};toast(x.skipped||`Synced: ${x.invoices} invoices, ${x.bills} bills${x.cash!=null?', bank '+inr(x.cash):''}`);await refreshFromServer();break}
+   case 'zoho-off':{const r=await fetch('/api/zoho',{method:'DELETE'});if(r.ok){toast('Zoho Books disconnected. Imported rows stay until you remove them.');await refreshFromServer()}else toast('Could not disconnect');break}
    case 'logout':await fetch('/api/auth/logout',{method:'POST'});location.href='/login';break;
   }
 });
@@ -893,7 +909,7 @@ function openClose(){
     <div class="field"><label for="cl-c">Bank balance</label><div class="money"><span class="pre">₹</span><input class="input num" type="number" step="any" id="cl-c" name="cash" required value="${(p.cash/1e5).toFixed(1)}"><span class="suf">L</span></div></div>
    </div>
    <div class="field"><label for="cl-file">Or fill these from a bank statement (CSV)</label><input class="input" type="file" id="cl-file" accept=".csv,text/csv"><span class="small muted" id="cl-note">The file is read on your device and never uploaded. Only the totals you save are kept.</span></div>
-   <div><div class="lbl" style="margin-bottom:6px">Connect your books</div><div class="connect">${['Zoho Books','Tally','Razorpay','Shopify'].map(n=>`<span>${n} <span class="soon">Soon</span></span>`).join('')}</div></div>
+   <div><div class="lbl" style="margin-bottom:6px">Connect your books</div>${zohoBlock()}</div>
    <div class="row"><button class="btn primary">Close the month</button><button type="button" class="btn ghost" data-act="close-layer">Cancel</button></div>
   </form>`);
 }
@@ -964,9 +980,11 @@ let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>
     const r=await fetch('/api/state',{cache:'no-store'});
     if(r.status===401){location.href='/login';return}
     const j=await r.json();
-    serverVersion=j.version;S=j.state;GP.role=j.role;GP.user=j.user;
+    serverVersion=j.version;S=j.state;GP.role=j.role;GP.user=j.user;GP.zoho=j.zoho;
   }catch(e){app.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;text-align:center;padding:16px">Could not load your plan. Check your connection and refresh.</div>';return}
   render();paintSync();
+  const zq=new URLSearchParams(location.search).get('zoho');
+  if(zq){const msg={connected:'Zoho Books connected and synced.',sync_failed:'Zoho Books connected, but the first sync failed. Try Sync now.',failed:'Could not connect Zoho Books. Try again.',denied:'Zoho Books was not connected.',owner_only:'Only the account owner can connect Zoho Books.',not_configured:'Zoho Books isn’t set up on this server yet.'}[zq];if(msg)toast(msg);try{history.replaceState(null,'',location.pathname+location.hash)}catch(_){}}
 })();
 
 })();

@@ -2,18 +2,24 @@ import { sql, ensureSchema } from '@/lib/db';
 import { digest } from '@/lib/summary';
 import { appUrl, emailConfigured, layout, sendEmail } from '@/lib/email';
 import { json, fail } from '@/lib/http';
+import { sync as zohoSync } from '@/lib/zoho';
 
 export const maxDuration = 60;
 
-/** Runs daily at 09:00 IST (Vercel cron). Sends the Monday plan and the 1st-of-month close reminder. */
+/** Runs daily at 09:00 IST (Vercel cron). Syncs Zoho Books, then sends the Monday plan and the 1st-of-month close reminder. */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) return fail('Unauthorised', 401);
-  if (!emailConfigured()) return json({ skipped: 'email not configured' });
   await ensureSchema();
+  // Refresh every Zoho Books connection first, so the emails use today's figures.
+  let synced = 0;
+  for (const z of await sql`select company_id from zoho_connections`) {
+    try { await zohoSync(z.company_id, null); synced++; } catch (e) { console.error('[cron zoho]', z.company_id, e); }
+  }
+  if (!emailConfigured()) return json({ synced, skipped: 'email not configured' });
   const ist = new Date(Date.now() + 5.5 * 3600_000);
   const monday = ist.getUTCDay() === 1, first = ist.getUTCDate() === 1;
-  if (!monday && !first) return json({ sent: 0, reason: 'not a reminder day' });
+  if (!monday && !first) return json({ synced, sent: 0, reason: 'not a reminder day' });
   const period = ist.toISOString().slice(0, 10);
   const rows = await sql`select cs.company_id, cs.data from company_state cs where cs.data is not null`;
   let sent = 0;
@@ -32,5 +38,5 @@ export async function GET(req: Request) {
       if (await sendEmail(to, kind === 'monday' ? `Your week at ${d.company}` : `Close last month for ${d.company}`, m.html, m.text)) sent++;
     }
   }
-  return json({ sent });
+  return json({ synced, sent });
 }

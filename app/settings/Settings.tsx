@@ -14,8 +14,9 @@ export default function Settings() {
   const [a, setA] = useState<Acct | null>(null);
   const [m, setM] = useState<Record<string, { ok?: string; err?: string }>>({});
   const [qr, setQr] = useState<{ qr: string; secret: string } | null>(null);
+  const [zoho, setZoho] = useState<{ configured: boolean; connected: boolean; org: string | null; lastSyncAt: string | null; lastError: string | null } | null>(null);
   const load = () => api<Acct>('/api/account', 'GET').then(setA).catch(() => (location.href = '/login'));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); api('/api/zoho', 'GET').then(setZoho).catch(() => {}); }, []);
   const say = (k: string, v: { ok?: string; err?: string }) => setM((s) => ({ ...s, [k]: v }));
   const run = (k: string, fn: (f: FormData) => Promise<string | void>) => async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const form = e.currentTarget; say(k, {});
@@ -69,6 +70,13 @@ export default function Settings() {
         {a.role === 'owner' ? <form className="row" onSubmit={run('team', async (f) => { const r = await api('/api/team', 'POST', { email: f.get('email') }); return r.joined ? 'Added. They can sign in now.' : r.emailSent ? 'Invite sent.' : `Invite saved. Email isn’t set up yet, so send them this link: ${r.link}`; })}>
           <input className="input" style={{ flex: 1, minWidth: 200 }} name="email" type="email" placeholder="teammate@company.com" aria-label="Teammate email" required />
           <button className="btn primary">Invite</button></form> : <p className="small muted">Only the owner can invite people.</p>}
+      </section>
+
+      <section className="card"><h2>Connections</h2><Msg m={m.zoho || {}} />
+        <div className="list"><div className="li"><span><b>Zoho Books</b> <span className="muted small">{zoho?.connected ? `${zoho.org || ''} · last synced ${zoho.lastSyncAt ? new Date(zoho.lastSyncAt).toLocaleString('en-IN') : 'never'}` : 'Read-only sync of invoices, bills, bank balance, sales and spend'}</span>
+          {zoho?.lastError && <span className="small" style={{ display: 'block', color: 'var(--bad)' }}>{zoho.lastError}</span>}</span>
+          {!zoho ? null : !zoho.configured ? <span className="pill">Not set up on server</span> : zoho.connected ? (a.role === 'owner' ? <button className="btn" style={{ padding: '4px 10px' }} onClick={async () => { await api('/api/zoho', 'DELETE'); setZoho(await api('/api/zoho', 'GET')); say('zoho', { ok: 'Zoho Books disconnected.' }); }}>Disconnect</button> : <span className="pill">Connected</span>)
+            : a.role === 'owner' ? <a className="btn primary" style={{ padding: '6px 12px' }} href="/api/zoho/connect">Connect</a> : <span className="pill">Owner connects</span>}</div></div>
       </section>
 
       <section className="card"><h2>Your data</h2>

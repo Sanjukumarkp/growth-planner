@@ -14,6 +14,7 @@ export default function Page() {
         <li>Anthropic, only the summary sent with each advisor question, to generate the answer.</li>
         <li>Our email provider, to send sign-in codes, password resets, invites and reminders.</li>
         <li>Google, only when you choose to sign in with Google.</li>
+        <li>Zoho, only if your company connects Zoho Books. We read invoices, bills, bank balances and expenses, never write to your books, and store the access token encrypted.</li>
       </ul>
       <p>Bank statements you import are read in your browser. Only the monthly totals you confirm are saved.</p>
       <h2>Your rights</h2>
