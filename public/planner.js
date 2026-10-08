@@ -191,6 +191,7 @@ function genPlan(p,keep){
   if(!st.launch.length)st.launch=[{id:uid(),n:'Company registration & legal',amt:25000},{id:uid(),n:'Website, domain & tools',amt:30000},{id:uid(),n:'First product / MVP',amt:200000},{id:uid(),n:'First inventory or setup',amt:150000},{id:uid(),n:'Marketing tests',amt:50000}];
   if(!st.first10.length)st.first10=Array.from({length:10},()=>({n:'',s:'Lead'}));
   if(p.stage==='idea')st.job={salary:p.salary||0,need:p.need||0,side:0};
+  st.gd=st.gd||{};st.gd.base=st.gd.base||{};if(!st.gd.base.grow||!keep)st.gd.base.grow=p.rev||0;
   st.weeks={};
   return st;
 }
@@ -232,6 +233,148 @@ function sampleState(){
   return st;
 }
 
+/* ================= goal workspace (changes with the 6-month goal) ================= */
+function GD(){S.gd=S.gd||{};const g=S.gd;g.checks=g.checks||{};g.pipe=g.pipe||{};g.target=g.target||{};g.base=g.base||{};return g}
+function paidN(){return S.first10.filter(c=>c.n&&c.s==='Paid').length}
+function rows(k){const g=GD();return g.pipe[k]=g.pipe[k]||[]}
+function beNums(){const b=S.be,p=S.profile;const cm=b.price-b.varCost;const units=cm>0&&b.fixed>0?b.fixed/cm:Infinity;const need=isFinite(units)?units*b.price:Infinity;const rev=p.rev||0;return{cm,units,need,rev,pct:isFinite(need)&&need>0?rev/need*100:0}}
+function growBase(){const g=GD();if(!g.base.grow){g.base.grow=S.profile.rev||0}return g.base.grow}
+function growTarget(){const g=GD();return g.target.grow||growBase()*2}
+const PIPES={
+ grow:{stages:['Testing','Working','Stopped'],good:'Working',name:'Channel, e.g. Instagram ads',amt:'Budget / month',unit:'num',empty:['No channels yet','Add 2 channels you will test for two weeks each.']},
+ raise:{stages:['Target','Contacted','Meeting','Diligence','Committed'],good:'Committed',name:'Investor or fund',amt:'Cheque size',unit:'lakh',empty:['No investors yet','Add the angels and funds who back companies like yours.']},
+ team:{stages:['Scorecard','Sourcing','Interviews','Offer','Joined'],good:'Joined',name:'Role, e.g. Sales lead',amt:'Salary / month',unit:'num',empty:['No roles yet','Add the role you want to hire next.']}
+};
+const GOAL_STEPS={
+ first10:[
+  {k:'list50',t:'Write down 50 people or companies who could buy',how:['Think of who has the problem most: by job, industry or neighbourhood.','Use LinkedIn, WhatsApp groups, local listings and friends of friends.','Add the best 10 to your first-10 tracker.']},
+  {k:'talk15',t:'Have 15 conversations about the problem',how:['Message people from your list and ask for 15 minutes.','Ask how they handle the problem today and what it costs them.','Move each person you talk to to “Talked”.']},
+  {k:'offer',t:'Write a simple offer: what they get, the price, when',how:['One paragraph: the result they get, the price, and when it starts.','Add a reason to say yes now, like a founding-customer discount.','Send it to everyone marked “Talked”.']},
+  {k:'paid3',t:'Get your first 3 paying customers',auto:()=>paidN()>=3,how:['Follow up with everyone at “Talked” or “Trial”.','Ask directly: “Shall I send the invoice?”','Mark them “Paid” in the tracker.']},
+  {k:'paid10',t:'Reach 10 paying customers',auto:()=>paidN()>=10,how:['Ask your paying customers who else has this problem.','Repeat what worked for the first 3.','Mark each one “Paid” in the tracker.']}],
+ breakeven:[
+  {k:'numbers',t:'Fill in your price, cost per order and fixed costs',how:['Open the break-even calculator in Cash.','Enter your average price, what each order costs you, and monthly fixed costs.','Note how many orders a month you need.']},
+  {k:'costs',t:'List every monthly cost and mark the 3 least useful',how:['Export last month’s bank statement or ask your accountant for it.','Write each cost with its monthly amount.','Mark the 3 that bring in the least.']},
+  {k:'cut3',t:'Cut or renegotiate those 3 costs',how:['Cancel, pause or ask for a better rate on each.','Write down the monthly saving.','Update fixed costs in the calculator.']},
+  {k:'price',t:'Test a 10% price rise on one product',how:['Pick one product or plan with steady demand.','Raise the price 10% for two weeks.','Compare orders before and after.']},
+  {k:'month',t:'Have one month where sales cover spend',auto:()=>{const h=S.history[S.history.length-1];return !!h&&h.rev>0&&h.rev>=h.spend},how:['Close each month so the numbers are real.','Push the levers that moved your gap the most.','This ticks itself when a closed month shows sales above spend.']}],
+ grow:[
+  {k:'target',t:'Set your revenue target',auto:()=>!!GD().target.grow,how:['Look at your monthly sales today.','Type the monthly sales you want in 6 months in the goal plan.','Break it down per channel.']},
+  {k:'channels',t:'Pick 2 growth channels to test',auto:()=>rows('grow').length>=2,how:['List channels that fit your customer: ads, marketplaces, partners, referrals.','Choose the 2 that are cheapest to test.','Add them to the channel tracker with a budget.']},
+  {k:'funnel',t:'Find the biggest drop-off in your sales funnel',how:['Write the steps from first visit to paid order.','Count how many people reach each step.','Pick the step that loses the most people and fix it first.']},
+  {k:'working',t:'Find one channel that works',auto:()=>rows('grow').some(r=>r.s==='Working'),how:['Judge each test on cost per paying customer.','Mark the winner “Working” and stop the rest.','Put more budget into the one that works.']},
+  {k:'half',t:'Reach halfway to your target',auto:()=>{const b=growBase(),t=growTarget();return t>b&&(S.profile.rev||0)>=b+(t-b)/2},how:['Close each month so sales are up to date.','Keep spending on the working channel.','This ticks itself when monthly sales reach halfway.']}],
+ raise:[
+  {k:'memo',t:'Write a one-page investor memo',how:['Problem, solution, traction, team, how much you are raising and for what.','Keep it to one page.','Ask the advisor to critique it.']},
+  {k:'deck',t:'Make a 10-slide pitch deck',how:['One slide each: problem, solution, market, product, traction, business model, competition, team, financials, the ask.','Use your real numbers from Cash.','Practise it out loud three times.']},
+  {k:'data',t:'Put together a data room',how:['Incorporation papers, cap table, last 12 months of numbers, key contracts.','Put them in one shared folder.','Keep a list of what is missing.']},
+  {k:'list',t:'List 30 investors who back companies like yours',auto:()=>rows('raise').length>=30,how:['Look for angels and funds who invested in your sector and stage.','Find a warm introduction for each if you can.','Add them to the investor tracker.']},
+  {k:'update',t:'Send your first monthly investor update',how:['Open Advisor and tap “Draft my monthly investor update”.','Add one win and one ask.','Send it to everyone on your list.']},
+  {k:'meet',t:'Get 5 investor meetings',auto:()=>rows('raise').filter(r=>['Meeting','Diligence','Committed'].includes(r.s)).length>=5,how:['Send short, personal emails with your one-page memo.','Follow up once after a week.','Move each one to “Meeting” when it is booked.']}],
+ team:[
+  {k:'role',t:'Decide the role you will hire for',auto:()=>rows('team').length>=1,how:['Write down what is taking most of your time.','Pick the role that frees you up the most.','Add it to the hiring tracker.']},
+  {k:'scorecard',t:'Write the scorecard: 3 results in the first year',how:['List the 3 results this person must deliver.','Write the skills needed for each result.','Share it with your team for comments.']},
+  {k:'budget',t:'Check the salary fits your runway',how:['Enter the monthly salary in the hiring tracker.','See the new runway in the goal plan.','Keep at least 12 months after the hire if you can.']},
+  {k:'onboard',t:'Write a 30-60-90 day onboarding plan',how:['What they learn in the first 30 days.','What they own by day 60.','What results you expect by day 90.']},
+  {k:'hired',t:'Hire the person',auto:()=>rows('team').some(r=>r.s==='Joined'),how:['Run interviews against the scorecard.','Check two references.','Mark them “Joined” in the tracker.']}],
+ compliant:[
+  {k:'pan',t:'Company PAN and TAN',how:['Both are issued with incorporation.','If TAN is missing, apply on the income tax portal.','Save copies in one folder.']},
+  {k:'bank',t:'Current account in the company’s name',how:['Open it with your incorporation certificate, PAN and board resolution.','Move all business payments to it.','Stop using personal accounts for the business.']},
+  {k:'gst',t:'GST registration (if you need it)',how:['Check the limits in Compliance: ₹40 L for goods, ₹20 L for services, and any online selling.','Apply on the GST portal or through your CA.','Mark it done once you have the GSTIN.']},
+  {k:'udyam',t:'Udyam (MSME) registration',reg:'udyam',how:['Go to udyamregistration.gov.in.','Use the director’s Aadhaar and the company PAN.','It is free and takes about 20 minutes.']},
+  {k:'dpiit',t:'Startup India (DPIIT) recognition',reg:'dpiit',how:['Open Compliance and find Startup India (DPIIT) recognition.','Keep your incorporation certificate and a short write-up ready.','Apply on the Startup India portal.']},
+  {k:'ca',t:'A monthly routine agreed with your CA',how:['Agree what you send each month and by which date.','Set the 7th as your books-closed date.','Ask the CA to confirm your filing calendar.']},
+  {k:'founders',t:'Founders’ agreement signed',how:['Cover roles, equity, vesting and what happens if someone leaves.','Have a lawyer review it.','Sign and store it with your company papers.']},
+  {k:'tm',t:'Trademark filed for your brand name',how:['Search the trademark registry for your name.','File in the classes you sell in.','Mark it done once you have the application number.']}]
+};
+function stepDone(st){if(st.auto)return !!st.auto();if(st.reg)return S.regs[st.reg]==='done';return !!GD().checks[S.profile.goal+':'+st.k]}
+function goalSteps(){return GOAL_STEPS[S.profile.goal]||GOAL_STEPS.grow}
+function nextStep(){return goalSteps().find(s=>!stepDone(s))}
+function goalMetric(){
+  const p=S.profile,g=p.goal,steps=goalSteps(),done=steps.filter(stepDone).length;
+  if(g==='first10'){const n=paidN();return{big:`${n}<small>/ 10</small>`,label:'paying customers',pct:n*10}}
+  if(g==='breakeven'){const b=beNums();if(!isFinite(b.need))return{big:`${done}<small>/ ${steps.length}</small>`,label:'steps done · fill in the break-even numbers in Cash',pct:done/steps.length*100};
+    return{big:`${Math.min(999,Math.round(b.pct))}<small>%</small>`,label:b.pct>=100?'Sales cover your costs':`of break-even sales · ${inr(Math.max(0,b.need-b.rev))} a month to go`,pct:b.pct}}
+  if(g==='grow'){const b=growBase(),t=growTarget(),r=p.rev||0;const pct=t>b?(r-b)/(t-b)*100:0;return{big:`${inr(r)}<small>/ ${inr(t)}</small>`,label:'monthly sales against your 6-month target',pct}}
+  if(g==='raise'){const t=GD().target.raise||0,c=rows('raise').filter(r=>r.s==='Committed').reduce((a,r)=>a+(r.amt||0),0);
+    return t?{big:`${inr(c)}<small>/ ${inr(t)}</small>`,label:'committed so far',pct:c/t*100}:{big:`${done}<small>/ ${steps.length}</small>`,label:'ready-to-raise steps done',pct:done/steps.length*100}}
+  if(g==='team'){const rs=rows('team'),j=rs.filter(r=>r.s==='Joined').length;return rs.length?{big:`${j}<small>/ ${rs.length}</small>`,label:rs.length===1?'role filled':'roles filled',pct:j/rs.length*100}:{big:`${done}<small>/ ${steps.length}</small>`,label:'hiring steps done',pct:done/steps.length*100}}
+  return{big:`${done}<small>/ ${steps.length}</small>`,label:'papers in order',pct:done/steps.length*100};
+}
+const GOAL_SUB={first10:'Find, talk to and sign your first 10 paying customers.',breakeven:'Get sales to cover all your costs, so cash stops falling.',grow:'Grow monthly sales by finding one channel that works and doubling down.',raise:'Get ready, build your investor list and run the raise.',team:'Hire the right next person without running out of cash.',compliant:'Get every registration and routine in place, once.'};
+function goalStrip(){
+  const p=S.profile,m=goalMetric(),nx=nextStep();
+  return `<section class="card goalstrip"><div class="gs-main"><div class="eyebrow">Your 6-month goal</div><h2>${esc(GOALS[p.goal]||'Grow')}</h2>
+    <div class="gbar"><i style="width:${clamp(m.pct,2,100)}%"></i></div><div class="small muted"><b class="num" style="color:var(--ink)">${m.big.replace(/<small>/g,' ').replace(/<\/small>/g,'')}</b> ${m.label}</div></div>
+    <div class="gs-next">${nx?`<div class="lbl">Next step</div><div class="t">${esc(nx.t)}</div>`:`<div class="lbl">All steps done</div><div class="t">Time to set the next goal.</div>`}
+    <button class="btn sm primary" data-act="nav" data-v="plan">Open goal plan ${ICON.arrow}</button></div></section>`;
+}
+function pipeHTML(k){
+  const P=PIPES[k],rs=rows(k);
+  return `<div class="tensum">${P.stages.map(s=>`<span class="ts ${s===P.good?'paid':''}">${s} <b>${rs.filter(r=>r.s===s).length}</b></span>`).join('')}</div>
+   <div class="gpipe">${rs.length?rs.map(r=>`<div class="slot ${r.s===P.good?'paid':''}"><input id="gp-${r.id}" data-gp="${k}" data-id="${r.id}" data-f="n" value="${esc(r.n)}" aria-label="Name">
+     <div class="money gamt"><span class="pre">₹</span><input class="num" type="number" step="any" id="gpa-${r.id}" data-gp="${k}" data-id="${r.id}" data-f="amt" value="${r.amt?(P.unit==='lakh'?r.amt/1e5:r.amt):''}" placeholder="${P.amt}" aria-label="${P.amt}">${P.unit==='lakh'?'<span class="suf">L</span>':''}</div>
+     <div class="stg" role="group" aria-label="Stage">${P.stages.map(s=>`<button type="button" class="${r.s===s?'on'+(s===P.good?' paid':''):''}" data-act="gp-stage" data-k="${k}" data-id="${r.id}" data-s="${s}" aria-pressed="${r.s===s}">${s}</button>`).join('')}</div>
+     <button type="button" class="x" data-act="gp-del" data-k="${k}" data-id="${r.id}" aria-label="Remove">×</button></div>`).join('')
+     :emptyState('accent',ICON.plan||ICON.team,P.empty[0],P.empty[1])}</div>
+   <form class="row" data-form="gp" data-k="${k}" style="margin-top:10px"><input class="input" style="flex:1;min-width:180px" name="n" id="gp-new-${k}" placeholder="${P.name}" required aria-label="${P.name}"><button class="btn primary">Add</button></form>`;
+}
+function goalTool(){
+  const p=S.profile,g=p.goal,f=fin();
+  if(g==='first10')return `<h3>First-10 tracker</h3>${tenTracker()}`;
+  if(g==='breakeven'){const b=beNums(),be=S.be;
+    if(!isFinite(b.need))return `<h3>Your break-even numbers</h3>${emptyState('pop',ICON.cash,'Fill in three numbers','Your price, what each order costs you, and your fixed costs a month.',`<button class="btn sm primary" data-act="nav" data-v="cash">Open the calculator ${ICON.arrow}</button>`)}`;
+    const up=be.price*1.1-be.varCost,ordUp=up>0?be.fixed/up:Infinity,cut=be.fixed*0.9/b.cm;
+    return `<h3>Your break-even numbers</h3><div class="grid g-3" style="gap:10px;margin-top:10px">
+      <div class="stat"><span class="k">Sales needed / month</span><span class="v num">${inr(b.need)}</span></div>
+      <div class="stat"><span class="k">Your sales now</span><span class="v num">${inr(b.rev)}</span></div>
+      <div class="stat"><span class="k">Gap</span><span class="v num" style="color:${b.rev>=b.need?'var(--good)':'var(--bad)'}">${b.rev>=b.need?'Covered':inr(b.need-b.rev)}</span></div></div>
+     <div class="lbl" style="margin:16px 0 6px">Three levers</div>
+     <div class="list">
+      <div class="li"><div class="grow"><div class="t">Raise prices 10%</div><div class="small muted">Orders needed drop from ${Math.ceil(b.units).toLocaleString('en-IN')} to ${isFinite(ordUp)?Math.ceil(ordUp).toLocaleString('en-IN'):'—'} a month.</div></div></div>
+      <div class="li"><div class="grow"><div class="t">Cut fixed costs 10%</div><div class="small muted">Orders needed drop to ${Math.ceil(cut).toLocaleString('en-IN')} a month. Saves ${inr(be.fixed*0.1)}.</div></div></div>
+      <div class="li"><div class="grow"><div class="t">Sell more</div><div class="small muted">About ${Math.max(0,Math.ceil(b.units-(be.price>0?b.rev/be.price:0))).toLocaleString('en-IN')} more orders a month at today’s prices.</div></div></div></div>
+     <button class="btn sm ghost" style="margin-top:10px;padding-left:0" data-act="nav" data-v="cash">Change the numbers in Cash ${ICON.arrow}</button>`}
+  if(g==='grow'){const b=growBase(),t=growTarget();const h=S.history.slice(-6);const mx=Math.max(t,...h.map(x=>x.rev),1);
+    return `<h3>Revenue target</h3><div class="grid g-3" style="gap:10px;margin-top:10px;align-items:end">
+      <div class="stat"><span class="k">When you set the goal</span><span class="v num">${inr(b)}</span></div>
+      <div class="stat"><span class="k">Now</span><span class="v num">${inr(p.rev||0)}</span></div>
+      <div class="field"><label for="g-tg">Target / month in 6 months</label><div class="money"><span class="pre">₹</span><input class="input num" type="number" step="any" id="g-tg" data-bind="gd.target.grow" data-type="lakh" value="${t/1e5}"><span class="suf">L</span></div></div></div>
+     ${h.length>=2?`<div class="gbars" aria-label="Monthly sales">${h.map(x=>`<div><i style="height:${Math.max(4,x.rev/mx*100)}%"></i><span>${mlabel(x.m).split(' ')[0]}</span></div>`).join('')}<div class="tline" style="bottom:calc(18px + ${t/mx} * (100% - 18px))"><span>Target</span></div></div>`:''}
+     <h3 style="margin-top:18px">Channel tests</h3><p class="small muted">Test each channel for two weeks. Keep the one that brings paying customers cheapest.</p>${pipeHTML('grow')}`}
+  if(g==='raise'){const t=GD().target.raise||0;const rw=f.runway;
+    return `<h3>The raise</h3><div class="grid g-3" style="gap:10px;margin-top:10px;align-items:end">
+      <div class="field"><label for="g-rt">How much are you raising?</label><div class="money"><span class="pre">₹</span><input class="input num" type="number" step="any" id="g-rt" data-bind="gd.target.raise" data-type="lakh" value="${t?t/1e5:''}" placeholder="0"><span class="suf">L</span></div></div>
+      <div class="stat"><span class="k">Runway today</span><span class="v num">${runwayTxt(rw)}</span></div>
+      <div class="stat"><span class="k">Raises usually take</span><span class="v num">4–6 months</span></div></div>
+     ${isFinite(rw)&&rw<9?`<div class="alert warn" style="margin-top:12px">${ICON.warn}<div>You have less than 9 months of cash. Start now, and work on cutting burn at the same time.</div></div>`:''}
+     <h3 style="margin-top:18px">Investor tracker</h3><p class="small muted">Move each investor along as things progress. Add their likely cheque size.</p>${pipeHTML('raise')}`}
+  if(g==='team'){const add=rows('team').filter(r=>r.s!=='Joined').reduce((a,r)=>a+(r.amt||0),0);const net=f.net+add;const nr=net>0?f.cash/net:Infinity;
+    return `<h3>Hiring tracker</h3><p class="small muted">Add each role with its monthly salary, then move it along as you hire.</p>${pipeHTML('team')}
+     ${add?`<div class="grid g-3" style="gap:10px;margin-top:14px"><div class="stat"><span class="k">Extra salaries / month</span><span class="v num">${inr(add)}</span></div><div class="stat"><span class="k">Runway now</span><span class="v num">${runwayTxt(f.runway)}</span></div><div class="stat"><span class="k">Runway after these hires</span><span class="v num" style="color:var(--${runwayTone(nr)})">${runwayTxt(nr)}</span></div></div>`:''}`}
+  const od=p.stage==='idea'?[]:overdueComp(),nd=p.stage==='idea'?null:nextDue()[0];
+  return `<h3>Filings</h3>${p.stage==='idea'?`<p class="small muted" style="margin-top:6px">Filings start once you register for GST or hire. Get the registrations on the left done first.</p>`:`
+    <div class="grid g-3" style="gap:10px;margin-top:10px"><div class="stat"><span class="k">Not marked filed</span><span class="v num" style="color:${od.length?'var(--bad)':'var(--good)'}">${od.length}</span></div>${nd?`<div class="stat" style="grid-column:span 2"><span class="k">Next deadline</span><span class="v" style="font-size:16px">${esc(nd.title)} · ${fmtD(nd.date)}</span></div>`:''}</div>`}
+   <button class="btn sm" style="margin-top:12px" data-act="nav" data-v="compliance">Open Compliance ${ICON.arrow}</button>`;
+}
+function goalPlan(){
+  const p=S.profile,steps=goalSteps(),m=goalMetric(),nx=nextStep();const done=steps.filter(stepDone).length;
+  return `<section class="card raised goalplan"><div class="card-head"><div><div class="eyebrow">Goal plan</div><h2 style="margin-top:4px">${esc(GOALS[p.goal]||'Grow')}</h2><p class="small muted" style="margin-top:4px">${GOAL_SUB[p.goal]||''} Change the goal with “Edit answers”.</p></div><span class="pill accent">${done} of ${steps.length} steps</span></div>
+   <div class="gw"><div>
+     <div class="gbig num">${m.big}</div><div class="small muted">${m.label}</div><div class="gbar"><i style="width:${clamp(m.pct,2,100)}%"></i></div>
+     <div class="lbl" style="margin:16px 0 4px">Steps, in order</div>
+     <ol class="gsteps">${steps.map((s,i)=>{const d=stepDone(s),now=nx&&nx.k===s.k;return `<li class="${d?'done':now?'now':''}">
+       ${s.auto?`<span class="check ${d?'on':''} auto" title="Ticks itself from your numbers">${ICON.tick}</span>`:`<button class="check ${d?'on':''}" data-act="gm-check" data-k="${s.k}" aria-pressed="${d}" aria-label="${esc(s.t)}">${ICON.tick}</button>`}
+       <div><div class="t">${esc(s.t)}</div>${now?`<span class="pill accent" style="font-size:11px">Next</span>`:''}${s.auto&&!d?`<span class="small muted"> Ticks itself</span>`:''}</div></li>`}).join('')}</ol>
+   </div><div class="gtool">${goalTool()}</div></div></section>`;
+}
+function tenTracker(){
+  while(S.first10.length<10)S.first10.push({n:'',s:'Lead'});
+  return `<div class="tenhelp">Write down people or companies who could buy. As you talk to them, move each one along: <b>Lead</b> (on your list) → <b>Talked</b> (had a conversation) → <b>Trial</b> (trying it) → <b>Paid</b>.</div>
+     <div class="tensum">${['Lead','Talked','Trial','Paid'].map(st=>`<span class="ts ${st.toLowerCase()}">${st} <b>${S.first10.filter(c=>c.n&&c.s===st).length}</b></span>`).join('')}</div>
+     <div class="ten">${S.first10.map((c,i)=>`<div class="slot ${c.s==='Paid'?'paid':''}"><span class="no">${i+1}</span><input id="f10-${i}" data-ten="${i}" data-f="n" value="${esc(c.n)}" placeholder="Name or company" aria-label="Customer ${i+1}"><div class="stg" role="group" aria-label="Stage for customer ${i+1}">${['Lead','Talked','Trial','Paid'].map(st=>`<button type="button" class="${c.s===st?'on '+st.toLowerCase():''}" data-act="ten-stage" data-i="${i}" data-s="${st}" aria-pressed="${c.s===st}">${st}</button>`).join('')}</div></div>`).join('')}</div>`;
+}
+
 /* ================= weekly moves ================= */
 function weekKey(){return iso(mondayOf(TODAY))}
 function needsClose(){const lm=mkey(new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1));return S.profile.stage!=='idea'&&!S.history.some(h=>h.m===lm)}
@@ -249,8 +392,8 @@ function genMoves(){
     c.push({t:'Put up a one-page site with a waitlist',why:'Measure how many strangers leave an email. It beats asking friends.',tag:'Idea',go:'plan',pr:64});
     c.push({t:'Ask 3 people to pre-pay or sign a letter of intent',why:'A payment is the clearest sign the idea works.',tag:'Sales',go:'plan',pr:62});
   }
-  const gm={first10:['Message 20 people from your target list','A short, personal note. Aim for 5 conversations.','Sales','plan'],breakeven:['Check your break-even number','See how far your sales are from covering costs.','Cash','cash'],grow:['Pick one growth channel and set a 2-week test','Write down the target, the budget and the date you will judge it.','Growth','plan'],raise:['Draft this month’s investor update','The advisor can write the first draft from your numbers.','Funding','advisor'],team:['Write the scorecard for your next hire','List the 3 results this person must deliver in a year.','Team','team'],compliant:['Start your DPIIT recognition','It unlocks tax and funding benefits. The form takes about an hour.','Compliance','compliance']}[p.goal];
-  if(gm)c.push({t:gm[0],why:gm[1],tag:gm[2],go:gm[3],pr:60});
+  const gs=nextStep();
+  if(gs)c.push({t:gs.t,why:`Next step towards your goal: ${GOALS[p.goal]||'growth'}.`,tag:'Goal',go:'plan',gk:p.goal+':'+gs.k,how:gs.how,pr:p.stage==='idea'&&p.goal!=='first10'?60:72});
   c.push({t:'Ask the advisor one question about your numbers',why:'For example: “Why is cash falling?”',tag:'Advisor',go:'advisor',pr:30});
   c.push({t:'Review the 13-week cash forecast',why:'Five minutes on Monday stops surprises on Friday.',tag:'Cash',go:'cash',pr:40});
   return c.sort((a,b)=>b.pr-a.pr).slice(0,3).map(m=>({...m,id:uid(),done:false}));
@@ -323,6 +466,7 @@ function vWeek(){
   </div>
   <div class="row" title="Weeks in a row with at least one move done"><div class="streak">${Array.from({length:8},(_,i)=>`<i class="${i<Math.min(8,streakN)?'on':''}" style="height:${10+i*3}px"></i>`).join('')}</div><div><div style="font-family:var(--f-display);font-weight:800;font-size:20px;line-height:1">${streakN}-week streak</div><div class="small muted">Weeks with a move done</div></div></div>
   </header>
+  ${goalStrip()}
   ${needsClose()?`<div class="alert warn" style="align-items:center">${ICON.warn}<div style="flex:1">It’s a new month. Close ${MONL[new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1).getMonth()]} so your forecast uses real figures.</div><button class="btn sm" data-act="close">Close the month</button></div>`:''}
   <div class="grid g-main">
     <section class="card raised">
@@ -368,8 +512,9 @@ function vWeek(){
 }
 function emptyState(tone,icon,title,sub,btn=''){return `<div class="es"><div class="es-ic ${tone}">${icon}</div><b>${title}</b><span>${sub}</span>${btn}</div>`}
 /* ---------- guided weekly moves ---------- */
-const GO_LABEL={cash:'Open Cash',compliance:'Open Compliance',team:'Open Team',plan:'Open Plan',advisor:'Open Advisor',week:'Open'};
+const GO_LABEL={plan:'Open goal plan',cash:'Open Cash',compliance:'Open Compliance',team:'Open Team',advisor:'Open Advisor',week:'Open'};
 function howFor(m){
+  if(m.how&&m.how.length)return m.how;
   const t=(m.t||'').toLowerCase();
   if(/^file /.test(t))return ['Open Compliance to see the exact form and its due date.','Send your sales and purchase details to your CA, or file it yourself on the government portal.','Come back here and tap “Mark as done”.'];
   if(/^chase /.test(t))return ['Call or WhatsApp the customer today. Mention the invoice number and the amount.','Agree a date they will pay by, or ask for part of it now.','When the money arrives, mark the invoice “Paid” in Cash.'];
@@ -564,8 +709,9 @@ function vPlan(){
   <header class="pagehead"><div><div class="eyebrow">Your plan · ${esc(p.company)}</div><h1 style="margin-top:8px">${esc(GOALS[p.goal]||'Grow')}${p.goal==='raise'?'.':' in the next 6 months.'}</h1>
    <div class="row" style="margin-top:12px"><span class="pill accent">${STAGES[p.stage].n}</span><span class="pill">${esc(p.sector)}</span><span class="pill">Team: ${esc(p.team)}</span></div></div>
    <button class="btn" data-act="edit-answers">Edit answers</button></header>
+  ${goalPlan()}
   ${p.stage==='idea'?noSalesPath():''}
-  <section class="card raised">
+  <section class="card">
    <div class="card-head"><h2>Initiatives</h2><span class="small muted">Grouped by Indian financial-year quarter</span></div>
    ${Object.values(byQ).map(g=>`<div class="qtr" style="margin-bottom:14px"><div class="month-h">${g.q.label} · ${g.q.range}</div>
     ${g.items.map(i=>{const late=i.status!=='done'&&parseISO(i.due)<TODAY;return `<div class="item ${i.status==='done'?'done':''}">
@@ -595,9 +741,7 @@ function noSalesPath(){
      <div class="checklist">${checks.map(([k,t])=>`<label class="cl"><button class="check ${S.ideaChecks[k]?'on':''}" data-act="idea-check" data-k="${k}" aria-pressed="${!!S.ideaChecks[k]}" aria-label="${esc(t)}">${ICON.tick}</button>${t}</label>`).join('')}</div></div></div>
    <div class="step ${launchTotal()>0?'ok':''}"><div class="dot">${launchTotal()>0?ICON.tick.replace('<svg','<svg width="20" height="20"'):2}</div><div class="body"><h3>Know the cost to launch</h3><p class="small muted">${inr(launchTotal())} including a 15% buffer. <button class="btn sm ghost" data-act="nav" data-v="cash">Edit in Cash</button></p></div></div>
    <div class="step ${paid>=10?'ok':''}"><div class="dot">${paid>=10?ICON.tick.replace('<svg','<svg width="20" height="20"'):3}</div><div class="body"><h3>Find the first 10 customers</h3><p class="small muted">${paid} paid · ${S.first10.filter(c=>c.n).length} on the list</p>
-     <div class="tenhelp">Write down people or companies who could buy. As you talk to them, move each one along: <b>Lead</b> (on your list) → <b>Talked</b> (had a conversation) → <b>Trial</b> (trying it) → <b>Paid</b>.</div>
-     <div class="tensum">${['Lead','Talked','Trial','Paid'].map(st=>`<span class="ts ${st.toLowerCase()}">${st} <b>${S.first10.filter(c=>c.n&&c.s===st).length}</b></span>`).join('')}</div>
-     <div class="ten">${S.first10.map((c,i)=>`<div class="slot ${c.s==='Paid'?'paid':''}"><span class="no">${i+1}</span><input id="f10-${i}" data-ten="${i}" data-f="n" value="${esc(c.n)}" placeholder="Name or company" aria-label="Customer ${i+1}"><div class="stg" role="group" aria-label="Stage for customer ${i+1}">${['Lead','Talked','Trial','Paid'].map(st=>`<button type="button" class="${c.s===st?'on '+st.toLowerCase():''}" data-act="ten-stage" data-i="${i}" data-s="${st}" aria-pressed="${c.s===st}">${st}</button>`).join('')}</div></div>`).join('')}</div></div></div>
+     ${p.goal==='first10'?`<p class="small"><button class="btn sm ghost" style="padding-left:0" data-act="scroll-goal">Your tracker is in the goal plan above ${ICON.arrow}</button></p>`:tenTracker()}</div></div></div>
    <div class="step ${r.months>=12?'ok':''}"><div class="dot">${r.months>=12?ICON.tick.replace('<svg','<svg width="20" height="20"'):4}</div><div class="body"><h3>Check your runway</h3><p class="small muted">${r.months>=99?'Add your monthly spend in Cash to see this.':`Savings cover about ${trimN(Math.round(r.months*10)/10)} months after launch costs.`}</p></div></div>
    <div class="step ${sigN===3?'ok':''}"><div class="dot">${sigN===3?ICON.tick.replace('<svg','<svg width="20" height="20"'):5}</div><div class="body"><h3>Decide when to quit the job</h3>
      ${p.job==='no'?`<p class="small muted">You’re already full-time on this.</p>`:`
@@ -624,14 +768,18 @@ function ctxText(){
     const py=S.pay.filter(r=>!r.paid);if(py.length)L.push('Bills to pay: '+py.map(r=>`${r.who} ${inr(r.amt)} due ${fmtD(parseISO(r.due))}`).join('; '));
     const b=S.be;L.push(`Break-even inputs: avg price ${inr(b.price)}, direct cost per order ${inr(b.varCost)}, fixed costs ${inr(b.fixed)}/month.`);
     const nd=nextDue().slice(0,4);if(nd.length)L.push('Next compliance dates: '+nd.map(e=>`${e.title} on ${fmtD(e.date)}`).join('; '));}
+  {const m=goalMetric(),nx=nextStep();L.push(`Goal progress: ${m.big.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()} ${m.label}. Steps done: ${goalSteps().filter(stepDone).map(x=>x.t).join('; ')||'none'}. Next step: ${nx?nx.t:'all done'}.`);
+   const pk={grow:'Channel tests',raise:'Investor pipeline',team:'Hiring pipeline'}[p.goal];if(pk&&rows(p.goal).length)L.push(pk+': '+rows(p.goal).map(r=>`${r.n} (${r.s}${r.amt?', '+inr(r.amt):''})`).join('; '))}
   L.push('Open initiatives: '+S.items.filter(i=>i.status!=='done').map(i=>`${i.title} (owner ${member(i.owner).name}, due ${fmtD(parseISO(i.due))}${parseISO(i.due)<TODAY?', OVERDUE':''})`).join('; '));
   return L.join('\n');
 }
 const ADV_SYS=`You are the advisor inside Growth Planner, helping a first-time Indian startup founder who has no CFO or consultant. Answer from THEIR numbers below. Use ₹ with lakh (L) and crore (Cr). Lead with the answer in one or two sentences, then give 2–4 specific reasons or steps that cite their figures. Keep it under 200 words unless they ask you to draft something (investor update, SOP, email, pitch feedback). For tax, legal or filing specifics, say to confirm with their CA. If the data cannot answer the question, say exactly which number you would need. Plain text only: short paragraphs and "- " bullets, **bold** allowed, no headings, no tables.`;
 function vAdvisor(){
   const p=S.profile;const isIdea=p.stage==='idea';
-  const Q=isIdea?[['Launch','Is my idea ready to launch?'],['Customers','How should I find my first 10 customers?'],['Career','When should I quit my job?'],['Money','What should I spend my savings on first?'],['Draft','Write a script for customer interviews'],['Pitch','Critique my pitch: ']]
+  let Q=isIdea?[['Launch','Is my idea ready to launch?'],['Customers','How should I find my first 10 customers?'],['Career','When should I quit my job?'],['Money','What should I spend my savings on first?'],['Draft','Write a script for customer interviews'],['Pitch','Critique my pitch: ']]
     :[['Pricing','Should I raise prices?'],['Cash','Why is cash falling?'],['Draft','Draft my monthly investor update'],['Costs','Which costs should I cut first?'],['Process','Write an SOP for closing the books each month'],['Pitch','Critique my pitch: ']];
+  const GQ={first10:['Goal','How do I get my first 10 paying customers?'],breakeven:['Goal','What is the fastest way for me to reach break-even?'],grow:['Goal','Which growth channel should I test first?'],raise:['Goal','Am I ready to raise, and how much should I ask for?'],team:['Goal','Can I afford my next hire, and who should it be?'],compliant:['Goal','What registrations and filings am I missing?']}[p.goal];
+  if(GQ&&!Q.some(q=>q[1]===GQ[1]))Q.unshift(GQ);
   const avail=UI.sampleOk!==false;const f=fin();
   const tiles=isIdea?[['Savings + cheque',inr(ideaRunway().pot)],['Launch cost',inr(launchTotal())],['Idea checks',Object.values(S.ideaChecks).filter(Boolean).length+' / 6'],['First-10 list',S.first10.filter(c=>c.n).length+' names']]
     :[['Bank',inr(f.cash)],['Sales / month',inr(f.rev)],['Spend / month',inr(f.spend)],['Runway',isFinite(f.runway)?trimN(Math.round(f.runway*10)/10)+' mo':'∞'],['Unpaid invoices',S.recv.filter(r=>!r.paid).length],['Deadlines ahead',Math.min(4,nextDue().length)]];
@@ -848,6 +996,9 @@ function onInput(e,live){
     if(el.dataset.bind==='profile.need'||el.dataset.bind==='profile.savings'||el.dataset.bind==='profile.angel'||el.dataset.bind==='profile.spend'){if(S.profile.stage==='idea')S.profile.cash=(S.profile.savings||0)+(S.profile.angel||0)}
     save();rerender();return}
   if(el.dataset.arr){if(live&&el.dataset.live===undefined)return;const arr=S[el.dataset.arr];const it=arr.find(x=>x.id===el.dataset.id);if(it){it[el.dataset.f]=readVal(el);save();rerender()}return}
+  if(el.dataset.gp){const r=rows(el.dataset.gp).find(x=>x.id===el.dataset.id);if(!r)return;
+    if(el.dataset.f==='n'){r.n=el.value;save();if(!live)rerender();return}
+    if(live)return;const P=PIPES[el.dataset.gp];r.amt=el.value===''?0:(P.unit==='lakh'?Math.round(+el.value*1e5):+el.value);save();rerender();return}
   if(el.dataset.ten!==undefined){if(live&&el.dataset.f==='n'){S.first10[+el.dataset.ten].n=el.value;save();return}S.first10[+el.dataset.ten][el.dataset.f]=el.value;save();rerender();return}
   if(el.id==='ask'){UI.draft=el.value;el.style.height='auto';el.style.height=Math.min(180,el.scrollHeight)+'px'}
 }
@@ -867,6 +1018,7 @@ document.addEventListener('submit',e=>{
   if(k==='task'){S.items.push({id:uid(),title:fd.get('t'),kind:'task',owner:fd.get('o'),due:fd.get('d')||iso(addDays(TODAY,7)),status:'todo',comments:[]});save();render();toast(`Assigned to ${member(fd.get('o')).name.split(' ')[0]}`)}
   if(k==='comment'){const it=S.items.find(i=>i.id===f.dataset.id);it.comments.push({by:'me',t:fd.get('c'),at:iso(TODAY)});save();render()}
   if(k==='ask'){ask(fd.get('q')||'')}
+  if(k==='gp'){const kk=f.dataset.k,P=PIPES[kk];const n=(fd.get('n')||'').trim();if(!n)return;rows(kk).push({id:uid(),n,s:P.stages[0],amt:0});save();rerender();document.getElementById('gp-new-'+kk)?.focus();toast('Added. Move it along as things progress.')}
   if(k==='close'){const m=fd.get('m');const row={m,rev:Math.round(+fd.get('rev')*1e5),spend:Math.round(+fd.get('spend')*1e5),cash:Math.round(+fd.get('cash')*1e5)};S.history=S.history.filter(h=>h.m!==m).concat(row).sort((a,b)=>a.m<b.m?-1:1);
     const last=S.history[S.history.length-1];Object.assign(S.profile,{rev:last.rev,spend:last.spend,cash:last.cash});const wk=S.weeks[weekKey()];if(wk)wk.moves.forEach(mv=>{if(mv.act==='close')mv.done=true});markStreak();save();closeLayer();render();toast(`${mlabel(m)} closed. Forecast updated.`)}
   if(k==='member'){const n=fd.get('n').trim();if(!n)return;const em=(fd.get('e')||'').trim();S.team.push({id:uid(),name:n,role:fd.get('r')||'Team',color:COLORS[S.team.length%COLORS.length],email:em||undefined});save();closeLayer();render();
@@ -882,9 +1034,14 @@ document.addEventListener('click',async e=>{
    case 'nav':UI.view=b.dataset.v;UI.openTask=null;try{history.replaceState(null,'','#'+UI.view)}catch(_){}render();window.scrollTo(0,0);break;
    case 'menu':UI.menu=!UI.menu;render();break;
    case 'menu-mobile':openLayer(`<h2>${esc(S.profile.company)}</h2><div class="menu" style="position:static;box-shadow:none">${menuHTML().replace(/^<div class="menu" role="menu">|<\/div>$/g,'')}</div><button class="btn" data-act="close-layer">Close</button>`);break;
-   case 'move':{const wk=thisWeek();const m=wk.moves.find(x=>x.id===id);m.done=!m.done;if(m.done){markStreak();S.seenMovesHelp=true;const nx=wk.moves.find(x=>!x.done);UI.openMove=nx?nx.id:null}else UI.openMove=m.id;save();rerender();
+   case 'move':{const wk=thisWeek();const m=wk.moves.find(x=>x.id===id);m.done=!m.done;if(m.gk){const sk=m.gk.split(':')[1],st=(GOAL_STEPS[m.gk.split(':')[0]]||[]).find(x=>x.k===sk);if(st&&!st.auto){if(st.reg)S.regs[st.reg]=m.done?'done':(S.regs[st.reg]==='done'?'':S.regs[st.reg]);else GD().checks[m.gk]=m.done}}if(m.done){markStreak();S.seenMovesHelp=true;const nx=wk.moves.find(x=>!x.done);UI.openMove=nx?nx.id:null}else UI.openMove=m.id;save();rerender();
      if(wk.moves.every(x=>x.done))toast('Week cleared. Nice work.');else if(m.done)toast('Done. Next move is open.');break}
    case 'ten-stage':{const c=S.first10[+b.dataset.i];if(!c.n){toast('Type a name first, then pick a stage.');document.getElementById('f10-'+b.dataset.i)?.focus();break}c.s=b.dataset.s;save();rerender();if(c.s==='Paid')toast(`${c.n} is a paying customer.`);break}
+   case 'gm-check':{const st=goalSteps().find(x=>x.k===b.dataset.k);if(!st)break;let on;if(st.reg){on=S.regs[st.reg]!=='done';S.regs[st.reg]=on?'done':''}else{const key=S.profile.goal+':'+st.k;on=!GD().checks[key];GD().checks[key]=on}
+     const wk=S.weeks[weekKey()];if(wk)wk.moves.forEach(mv=>{if(mv.gk===S.profile.goal+':'+st.k){mv.done=on}});if(on)markStreak();save();rerender();if(on){const nx=nextStep();toast(nx?'Nice. Next: '+nx.t:'Every step is done. Time for a new goal.')}break}
+   case 'gp-stage':{const r=rows(b.dataset.k).find(x=>x.id===id);if(!r)break;r.s=b.dataset.s;save();rerender();if(r.s===PIPES[b.dataset.k].good)toast(`${r.n}: ${r.s.toLowerCase()}.`);break}
+   case 'gp-del':{const k2=b.dataset.k;GD().pipe[k2]=rows(k2).filter(x=>x.id!==id);save();rerender();break}
+   case 'scroll-goal':document.querySelector('.goalplan')?.scrollIntoView({behavior:'smooth',block:'start'});break;
    case 'move-open':UI.openMove=UI.openMove===id?'__none__':id;rerender();break;
    case 'coach-ok':S.seenMovesHelp=true;save();rerender();break;
    case 'reroll':{const old=S.weeks[weekKey()].moves.filter(m=>m.done);const fresh=genMoves().filter(n=>!old.some(o=>o.t===n.t));S.weeks[weekKey()].moves=old.concat(fresh).slice(0,3);save();render();toast('Moves refreshed from your latest data');break}
