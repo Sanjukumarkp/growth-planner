@@ -4,6 +4,10 @@ A weekly co-pilot for first-time Indian founders: this week's three moves, a 13-
 
 Built with Next.js 15 and Postgres. Deploys to Vercel.
 
+## Sales module
+
+Find leads with AI, keep them in one scored list (with CSV import), run multi-step campaigns over email, WhatsApp and LinkedIn, work every conversation from one inbox, and collect enquiries through a public form at `/f/<company id>`. Emails are sent through Resend with the founder's name and reply-to address, an opt-out line, and a daily limit (`OUTREACH_DAILY_LIMIT`).
+
 ## What works today
 
 - Sign in with an emailed 6-digit code, with Google, or with a password; password reset; two-step sign-in (authenticator app)

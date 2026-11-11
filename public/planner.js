@@ -153,7 +153,7 @@ const MODS=[
  {k:'be',n:'Break-even calculator',s:['early','growing','scaling'],go:'cash',later:'Opens with your first sales'},
  {k:'aging',n:'Who owes you, whom you owe',s:['early','growing','scaling'],go:'cash',later:'Opens with your first sales'},
  {k:'fund',n:'Funding match',s:'all',go:'funding'},
- {k:'leads',n:'AI lead finder',s:'all',go:'leads'},
+ {k:'leads',n:'AI lead finder, campaigns & inbox',s:'all',go:'overview'},
  {k:'advisor',n:'AI advisor',s:'all',go:'advisor'},
  {k:'comp',n:'Compliance calendar',s:['early','growing','scaling'],go:'compliance',later:'Starts once you register for GST'},
  {k:'schemes',n:'Schemes & registrations',s:'all',go:'compliance'},
@@ -260,6 +260,19 @@ function sampleState(){
     {id:uid(),deal:D[2].id,dir:'in',ch:'email',status:'logged',at:dd(-1),outcome:'interested',body:'Hi Ananya, send me your price list and trade margins for modern trade. We review new products on the 25th.'},
     {id:uid(),deal:D[1].id,dir:'out',ch:'email',status:'sent',at:dd(-3),subject:'Diwali gifting boxes for Infosphere',body:'Hi Neha,\n\nWe make spice and latte gift boxes that teams actually use after Diwali. Could I send two sample boxes for you to see?\n\nAnanya, Haldi & Co.'}
    ];}
+  {const dd=n=>iso(addDays(TODAY,n));const D=st.deals;
+   Object.assign(D[0],{seg:'Café chain',city:'Mumbai'});Object.assign(D[1],{seg:'IT company',city:'Pune'});Object.assign(D[2],{seg:'Modern trade',city:'Mumbai'});Object.assign(D[3],{seg:'Hotel group',city:'Goa'});
+   const imp=[['Bean Theory Café','Riya Menon','Owner','riya@beantheory.example','Mumbai','Specialty café',180000],['Third Wave Corner','Sameer Joshi','Café manager','sameer@thirdwave.example','Pune','Specialty café',150000],['Roastery Lane','Aisha Khan','Founder','aisha@roasterylane.example','Mumbai','Specialty café',240000],['Kettle & Co.','Vikram Nair','Head of F&B','vikram@kettleco.example','Bengaluru','Café chain',420000],['Nimbus Software','Priya Das','HR Lead','priya@nimbus.example','Pune','IT company',300000],['The Daily Grind','','','hello@dailygrind.example','Mumbai','Specialty café',90000]];
+   const nd=imp.map(([n,person,role,email,city,seg,val])=>({id:uid(),n,person,role,email,phone:'',city,seg,val,stage:'lead',step:'',next:'',src:n==='Nimbus Software'?'Referral':'Imported'}));st.deals.push(...nd);
+   const cid=uid(),cafes=nd.slice(0,4);
+   st.camps=[{id:cid,name:'Specialty cafés: tasting kit',who:'Specialty cafés in Mumbai and Pune',offer:'Free tasting kit for the team',status:'running',created:dd(-3),launched:dd(-2),leads:cafes.map(x=>x.id),
+     steps:[{day:0,ch:'email',subject:'A tasting kit for {{company}}',body:'Hi {{first_name}},\n\nCafés like {{company}} are adding winter drinks. Our turmeric latte mix makes a ₹180 drink in 30 seconds with a good margin.\n\nCould I send a free tasting kit for your team?\n\n{{my_name}}, {{my_company}}'},{day:3,ch:'email',subject:'Re: A tasting kit for {{company}}',body:'Hi {{first_name}}, just checking you saw my note. Happy to drop the kit at {{company}} this week. Would Thursday work?\n\n{{my_name}}'},{day:7,ch:'email',subject:'Re: A tasting kit for {{company}}',body:'Hi {{first_name}}, I’ll keep this short. If this isn’t a priority, just tell me and I won’t follow up again.\n\n{{my_name}}, {{my_company}}'}]}];
+   const fv=(t,x)=>t.replace(/\{\{first_name\}\}/g,(x.person||'').split(' ')[0]||'there').replace(/\{\{company\}\}/g,x.n).replace(/\{\{my_name\}\}/g,'Ananya').replace(/\{\{my_company\}\}/g,'Haldi & Co.');
+   cafes.forEach(x=>st.camps[0].steps.forEach((s,i)=>st.msgs.push({id:uid(),deal:x.id,dir:'out',ch:s.ch,status:i===0?'sent':'scheduled',at:i===0?dd(-2):undefined,sendAt:i===0?undefined:dd(-2+s.day),subject:fv(s.subject,x),body:fv(s.body,x),camp:cid,step:i})));
+   cafes.forEach(x=>{x.stage='talk'});
+   st.msgs.push({id:uid(),deal:cafes[2].id,dir:'in',ch:'email',status:'logged',at:dd(-1),outcome:'interested',body:'Hi Ananya, yes please send the kit. We are at the Bandra outlet till 6.'});
+   st.msgs=st.msgs.filter(m=>!(m.deal===cafes[2].id&&m.status==='scheduled'));
+   st.tpls=[{id:uid(),name:'First email: tasting kit',ch:'email',subject:'A tasting kit for {{company}}',body:'Hi {{first_name}},\n\nCould I send a free tasting kit for your team at {{company}}?\n\n{{my_name}}, {{my_company}}'},{id:uid(),name:'WhatsApp: quick intro',ch:'whatsapp',subject:'',body:'Hi {{first_name}}, this is {{my_name}} from {{my_company}}. We make turmeric latte mixes for cafés. Can I send you a free sample?'}];}
   st.leads={in:{sell:'Turmeric latte mixes and spice blends',buyers:'Cafés, corporate gifting teams, modern trade stores',city:'Mumbai and Pune',size:'₹3–9 L a year per account',segment:'specialty cafés',channel:'WhatsApp',offer:'Free tasting kit for the team',goal:'20 café and gifting leads',budget:30000,weeks:2},out:{}};
   st.fund={need:2500000,use:'Working capital and inventory',pack:{forecast:true,room:true},status:{invoice:'prep'}};
   const lastW=mondayOf(addDays(TODAY,-7)),w2=mondayOf(addDays(TODAY,-14)),w3=mondayOf(addDays(TODAY,-21));
@@ -419,7 +432,7 @@ function genMoves(){
   const od=S.recv.filter(r=>!r.paid&&parseISO(r.due)<TODAY).sort((a,b)=>b.amt-a.amt)[0];
   {const sd=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost'&&x.next&&parseISO(x.next)<TODAY).sort((a,b)=>(b.val||0)-(a.val||0))[0];if(sd)c.push({t:`Follow up with ${sd.n}`,why:`${sd.step?sd.step+'. ':''}It was due ${fmtD(parseISO(sd.next))}. A ${inr(sd.val||0)} deal goes cold fast.`,tag:'Sales',go:'sales',pr:78,how:['Open Customers and find this deal.','Message or call them today with the next step.','Set a new “By” date so This week reminds you again.']})}
   {const lc=CH().map(x=>({x,u:ue(x)})).filter(r=>r.u.ratio!=null&&r.u.ratio<1&&r.x.spend>0).sort((a,b)=>b.x.spend-a.x.spend)[0];if(lc)c.push({t:`Fix or pause ${lc.x.n}`,why:`Each new customer costs ${inr(lc.u.cac)} and earns back only ${inr(lc.u.ltv)} in a year.`,tag:'Growth',go:'unit',pr:66,how:['Open Unit economics and check this channel’s numbers.','Cut its budget, raise prices, or improve repeat orders.','Move the budget to your best channel.']})}
-  {const op=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost').length;if(p.stage!=='idea'&&op<5)c.push({t:'Find 10 new prospects',why:`Only ${op} open ${op===1?'deal':'deals'} in your pipeline. The lead finder shows who to target and where to find them.`,tag:'Sales',go:'leads',pr:57,how:['Open the lead finder and build your ideal customer profile.','Use the ready-made searches to find 10 businesses.','Add each one as a lead so This week reminds you to follow up.']})}
+  {const op=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost').length;if(p.stage!=='idea'&&op<5)c.push({t:'Find 10 new prospects',why:`Only ${op} open ${op===1?'deal':'deals'} in your pipeline. The lead finder shows who to target and where to find them.`,tag:'Sales',go:'find',pr:57,how:['Open the lead finder and build your ideal customer profile.','Use the ready-made searches to find 10 businesses.','Add each one as a lead so This week reminds you to follow up.']})}
   outDueMoves(c);
   if(od)c.push({t:`Chase ${inr(od.amt)} from ${od.who}`,why:`${days(parseISO(od.due),TODAY)} days overdue. This is money you have already earned.`,tag:'Cash',go:'cash',pr:85});
   if(f.runway<9&&p.stage!=='idea')c.push({t:`Find ${inr(f.cutFor12)} a month to cut or bring in`,why:`That takes you from ${runwayTxt(f.runway)} to 12 months of runway.`,tag:'Cash',go:'cash',pr:80});
@@ -442,7 +455,7 @@ function thisWeek(){const k=weekKey();if(!S.weeks[k]){S.weeks[k]={moves:genMoves
 
 /* ================= render: shell ================= */
 const app=document.getElementById('app');
-const NAV=[['week','This week'],['cash','Cash'],['grow','Grow'],['advisor','Advisor'],['plan','Plan'],['compliance','Compliance'],['team','Team']];
+const NAV=[['week','This week'],['cash','Cash'],['grow','Sales'],['advisor','Advisor'],['plan','Plan'],['compliance','Compliance'],['team','Team']];
 
 function render(){
   if(OB){app.innerHTML=renderOB();afterOB();return}
@@ -451,7 +464,7 @@ function render(){
   const overdueTasks=S.items.filter(i=>i.status!=='done'&&parseISO(i.due)<TODAY).length;
   const compHot=p.stage==='idea'?0:overdueComp().length;
   const badges={team:overdueTasks,compliance:compHot};
-  const views={week:vWeek,cash:vCash,grow:vGrow,advisor:vAdvisor,plan:vPlan,compliance:vComp,team:vTeam};
+  const views={week:vWeek,cash:vMoney,grow:vGrow,advisor:vAdvisor,plan:vPlan,compliance:vComp,team:vTeam};
   app.innerHTML=`<div class="shell">
   <aside class="rail">
     <div class="brand">${ICON.logo}<span>Growth Planner</span></div>
@@ -552,7 +565,7 @@ function vWeek(){
 }
 function emptyState(tone,icon,title,sub,btn=''){return `<div class="es"><div class="es-ic ${tone}">${icon}</div><b>${title}</b><span>${sub}</span>${btn}</div>`}
 /* ---------- guided weekly moves ---------- */
-const GO_LABEL={grow:'Open Grow',leads:'Open lead finder',sales:'Open Customers',unit:'Open unit economics',funding:'Open Funding',plan:'Open goal plan',cash:'Open Cash',compliance:'Open Compliance',team:'Open Team',advisor:'Open Advisor',week:'Open'};
+const GO_LABEL={grow:'Open Sales',overview:'Open Sales',find:'Open lead finder',campaigns:'Open campaigns',outreach:'Open Inbox',leads:'Open Leads',sales:'Open Customers',unit:'Open unit economics',funding:'Open Funding',plan:'Open goal plan',cash:'Open Cash',compliance:'Open Compliance',team:'Open Team',advisor:'Open Advisor',week:'Open'};
 function howFor(m){
   if(m.how&&m.how.length)return m.how;
   const t=(m.t||'').toLowerCase();
@@ -730,7 +743,7 @@ function zohoBlock(){
   return owner?`<div class="zoho"><a class="btn sm primary" href="/api/zoho/connect">Connect Zoho Books</a><div class="small muted" style="margin-top:6px">Read-only. Pulls unpaid invoices and bills, your bank balance, and six months of sales and spend. Syncs every morning.</div></div>`+others
     :`<div class="small muted">Ask the account owner to connect Zoho Books.</div>`+others;
 }
-async function refreshFromServer(){const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)return;const j=await r.json();serverVersion=j.version;if(!S||!S.sample)S=j.state;GP.zoho=j.zoho;GP.email=j.email;render();paintSync()}
+async function refreshFromServer(){const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)return;const j=await r.json();serverVersion=j.version;if(!S||!S.sample)S=j.state;GP.zoho=j.zoho;GP.email=j.email;GP.companyId=j.companyId;render();paintSync()}
 function historyCard(){
   const h=S.history.slice(-6);
   return `<section class="card"><div class="card-head"><h2>Month by month</h2><button class="btn sm" data-act="close">Close a month</button></div>
@@ -811,6 +824,7 @@ function ctxText(){
   {const m=goalMetric(),nx=nextStep();L.push(`Goal progress: ${m.big.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()} ${m.label}. Steps done: ${goalSteps().filter(stepDone).map(x=>x.t).join('; ')||'none'}. Next step: ${nx?nx.t:'all done'}.`);
    const pk={grow:'Channel tests',raise:'Investor pipeline',team:'Hiring pipeline'}[p.goal];if(pk&&rows(p.goal).length)L.push(pk+': '+rows(p.goal).map(r=>`${r.n} (${r.s}${r.amt?', '+inr(r.amt):''})`).join('; '))}
   L.push('Open initiatives: '+S.items.filter(i=>i.status!=='done').map(i=>`${i.title} (owner ${member(i.owner).name}, due ${fmtD(parseISO(i.due))}${parseISO(i.due)<TODAY?', OVERDUE':''})`).join('; '));
+  if(CP().length)L.push('Campaigns: '+CP().map(c=>{const k=campStats(c);return `${c.name} (${c.status}, ${k.leads} leads, ${k.sent} sent, ${k.replied} replied)`}).join('; ')+'.');
   if(MS().length){const o=outStats();L.push(`Outreach: ${o.sent} messages sent in the last 7 days, reply rate ${o.rate==null?'n/a':Math.round(o.rate*100)+'%'}, ${o.due} follow-ups due today.`)}
   {const st=pipeStats();if(DL().length)L.push(`Sales pipeline: ${inr(st.val)} open across ${st.open.length} deals, ${inr(st.wtd)} weighted. Deals needing follow-up: ${st.stale.map(x=>x.n).join('; ')||'none'}.`)}
   if(CH().length)L.push('Unit economics by channel: '+CH().map(c=>{const u=ue(c);return `${c.n}: spend ${inr(c.spend)}/mo, ${c.cust} new customers, cost per customer ${u.cac==null?'n/a':inr(u.cac)}, 1-yr value ${inr(u.ltv)}`}).join('; ')+'.');
@@ -901,9 +915,11 @@ function vComp(){
 }
 
 /* ================= grow: customers, unit economics, funding ================= */
-const GT=[['leads','Find leads'],['outreach','Outreach'],['sales','Customers'],['unit','Unit economics'],['funding','Funding']];
-function vGrow(){const t=UI.growTab||'leads';
-  return `<div class="subnav" role="tablist" aria-label="Grow">${GT.map(([k,n])=>`<button role="tab" data-act="nav" data-v="${k}" aria-selected="${t===k}">${n}</button>`).join('')}</div>`+({leads:vLeads,outreach:vOutreach,sales:vSales,unit:vUnit,funding:vFund}[t]||vLeads)()}
+const GT=[['overview','Overview'],['find','Find leads'],['leads','Leads'],['campaigns','Campaigns'],['outreach','Inbox'],['sales','Pipeline']];
+const MT=[['cash','Cash flow'],['unit','Unit economics'],['funding','Funding']];
+function vMoney(){const t=UI.cashTab||'cash';return `<div class="subnav" role="tablist" aria-label="Money">${MT.map(([k,n])=>`<button role="tab" data-act="nav" data-v="${k}" aria-selected="${t===k}">${n}</button>`).join('')}</div>`+(t==='unit'?vUnit():t==='funding'?vFund():vCash())}
+function vGrow(){const t=UI.growTab||'overview';
+  return `<div class="subnav" role="tablist" aria-label="Sales">${GT.map(([k,n])=>`<button role="tab" data-act="nav" data-v="${k}" aria-selected="${t===k}">${n}</button>`).join('')}</div>`+({overview:vSalesHome,find:vLeads,leads:vLeadsDb,campaigns:vCampaigns,outreach:vOutreach,sales:vSales}[t]||vSalesHome)()}
 function DL(){return S.deals=S.deals||[]}
 function CH(){return S.channels=S.channels||[]}
 
@@ -924,7 +940,7 @@ function dealCard(x){const nd=x.next?parseISO(x.next):null,late=!nd||nd<TODAY;
 function vSales(){
   const p=S.profile,st=pipeStats(),d=DL();
   const cols=PSTAGE.slice(0,4);
-  return `<header class="pagehead"><div><div class="eyebrow">Customers · ${esc(p.company)}</div><h1 style="margin-top:8px">Never lose a deal to a missed follow-up.</h1><p class="lede">Every business customer you’re talking to, the next step with each, and the sales you can count on this quarter.</p></div></header>
+  return `<header class="pagehead"><div><div class="eyebrow">Pipeline · ${esc(p.company)}</div><h1 style="margin-top:8px">Never lose a deal to a missed follow-up.</h1><p class="lede">Every business customer you’re talking to, the next step with each, and the sales you can count on this quarter.</p></div></header>
   <div class="tiles4">
    <div class="tile"><div class="k"><i></i>Open deals</div><div class="v">${inr(st.val)}</div><div class="small muted">${st.open.length} ${st.open.length===1?'deal':'deals'}</div></div>
    <div class="tile"><div class="k"><i style="background:var(--good)"></i>Likely to close</div><div class="v">${inr(st.wtd)}</div><div class="small muted">Weighted by stage</div></div>
@@ -993,8 +1009,8 @@ function vLeads(){
   const p=S.profile,L=LD(),st=pipeStats();
   const fromFinder=DL().filter(x=>x.src==='Lead finder');
   const lead=DL().filter(x=>x.stage==='lead'||x.stage==='talk');
-  return `<header class="pagehead"><div><div class="eyebrow">AI lead finder · ${esc(p.company)}</div><h1 style="margin-top:8px">Find your next customers.</h1><p class="lede">Work out who to sell to, where to find them and what to say, using ${esc(p.company)}’s own numbers. Every prospect you add goes straight into Customers.</p></div></header>
-  <ol class="lsteps"><li class="${L.out.icp?'ok':''}"><div><b>Who to target</b><span>Ideal customer profile</span></div></li><li class="${L.out.src||fromFinder.length?'ok':''}"><div><b>Where to find them</b><span>Searches and sources</span></div></li><li class="${L.out.msg?'ok':''}"><div><b>What to say</b><span>Messages and follow-ups</span></div></li><li class="${st.won.length?'ok':''}"><div><b>Win them</b><span>${st.open.length} open deals in Customers</span></div></li></ol>
+  return `<header class="pagehead"><div><div class="eyebrow">AI lead finder · ${esc(p.company)}</div><h1 style="margin-top:8px">Find your next customers.</h1><p class="lede">Work out who to sell to, where to find them and what to say, using ${esc(p.company)}’s own numbers. Every prospect you add goes into your Leads list.</p></div></header>
+  <ol class="lsteps"><li class="${L.out.icp?'ok':''}"><div><b>Who to target</b><span>Ideal customer profile</span></div></li><li class="${L.out.src||fromFinder.length?'ok':''}"><div><b>Where to find them</b><span>Searches and sources</span></div></li><li class="${L.out.msg?'ok':''}"><div><b>What to say</b><span>Messages and follow-ups</span></div></li><li class="${st.won.length?'ok':''}"><div><b>Win them</b><span>${st.open.length} open deals in Pipeline</span></div></li></ol>
   ${UI.leadNoAI?`<div class="alert warn">${ICON.warn}<div>The AI isn’t switched on for this server yet. The search links and prospect list still work.</div></div>`:''}
   <div class="grid g-2">
    <section class="card stack">
@@ -1015,9 +1031,9 @@ function vLeads(){
    </section>
   </div>
   <section class="card">
-   <div class="card-head"><div><div class="eyebrow">Step 3</div><h2 style="margin-top:4px">Add the prospects you find</h2><p class="small muted" style="margin-top:4px">Each one goes into Customers as a lead with a follow-up date, so This week reminds you.</p></div><span class="pill accent">${fromFinder.length} added from here</span></div>
+   <div class="card-head"><div><div class="eyebrow">Step 3</div><h2 style="margin-top:4px">Add the prospects you find</h2><p class="small muted" style="margin-top:4px">Each one goes into Leads with a follow-up date, so This week reminds you.</p></div><span class="pill accent">${fromFinder.length} added from here</span></div>
    <form class="lead-add" data-form="lead"><input class="input" id="nl-n" name="n" placeholder="Business name" required aria-label="Business name"><input class="input" id="nl-c" name="c" placeholder="Contact person and role" aria-label="Contact"><div class="money"><span class="pre">₹</span><input class="input num" id="nl-v" name="v" type="number" step="any" placeholder="Likely value" aria-label="Likely deal value"></div><button class="btn primary">Add lead</button></form>
-   ${lead.length?`<div class="list" style="margin-top:12px">${lead.slice(-6).reverse().map(x=>`<div class="li"><div class="grow"><div class="t">${esc(x.n)}</div><div class="small muted">${PST[x.stage][1]}${x.step?' · '+esc(x.step):''}</div></div><b class="num">${x.val?inr(x.val):''}</b><button class="btn sm ghost" data-act="out-open" data-id="${x.id}">Write to them</button></div>`).join('')}</div><button class="btn sm ghost" style="padding-left:0;margin-top:6px" data-act="nav" data-v="sales">See all in Customers ${ICON.arrow}</button>`:''}
+   ${lead.length?`<div class="list" style="margin-top:12px">${lead.slice(-6).reverse().map(x=>`<div class="li"><div class="grow"><div class="t">${esc(x.n)}</div><div class="small muted">${PST[x.stage][1]}${x.step?' · '+esc(x.step):''}</div></div><b class="num">${x.val?inr(x.val):''}</b><button class="btn sm ghost" data-act="out-open" data-id="${x.id}">Write to them</button></div>`).join('')}</div><button class="btn sm ghost" style="padding-left:0;margin-top:6px" data-act="nav" data-v="leads">See all leads ${ICON.arrow}</button>`:''}
   </section>
   <div class="grid g-2">
    <section class="card stack" id="outreach">
@@ -1064,7 +1080,7 @@ async function OUT_AI(prompt,onText){
 function MS(){return S.msgs=S.msgs||[]}
 const OCH={email:'Email',whatsapp:'WhatsApp',linkedin:'LinkedIn',call:'Call',note:'Note'};
 const OTYPES=[['email','Email'],['whatsapp','WhatsApp'],['linkedin','LinkedIn'],['pitch','Sales pitch'],['proposal','Proposal']];
-const OUTCOMES=[['interested','Interested'],['meeting','Meeting booked'],['later','Not now, maybe later'],['no','Not interested'],['other','Something else']];
+const OUTCOMES=[['interested','Interested'],['meeting','Meeting booked'],['later','Not now, maybe later'],['no','Not interested'],['stop','Asked not to be contacted'],['other','Something else']];
 function dealMsgs(id){return MS().filter(m=>m.deal===id).sort((a,b)=>(a.at||a.sendAt||'')<(b.at||b.sendAt||'')?-1:1)}
 function dealStatus(x){const ms=dealMsgs(x.id),sent=ms.filter(m=>m.status!=='scheduled');
   const due=ms.filter(m=>m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY);
@@ -1088,8 +1104,8 @@ function outPrompt(x,c){
   const hist=ms.length?ms.map(m=>`${m.dir==='in'?'THEM':'US'} (${OCH[m.ch]||m.ch}, ${m.at}): ${m.subject?m.subject+' — ':''}${(m.body||'').slice(0,700)}`).join('\n'):'No messages yet. This is the first contact.';
   const goal=c.goal||({lead:'a 15-minute call',talk:'a short meeting or demo',meet:'agreement to see a proposal',prop:'a decision on the proposal'}[x.stage]||'a reply');
   const about=`OUR COMPANY: ${p.company}, founded by ${me}. Sector: ${p.sector}. What we sell: ${L.in.sell||p.sector}. Who usually buys: ${L.in.buyers||'not given'}. Offer we can make: ${L.in.offer||'none given'}.${L.out.icp?'\nOur ideal customer profile (for context):\n'+L.out.icp.slice(0,1200):''}
-PROSPECT: ${x.n}. Contact: ${x.person||'unknown name'}${x.role?', '+x.role:''}. Stage: ${PST[x.stage][1]}. Likely deal value: ${x.val?inr(x.val):'unknown'}. Our notes: ${x.step||'none'}.
-CONVERSATION SO FAR:\n${hist}
+PROSPECT: ${x.n}${x.seg?' ('+x.seg+')':''}${x.city?', '+x.city:''}. Contact: ${x.person||'unknown name'}${x.role?', '+x.role:''}. Stage: ${PST[x.stage][1]}. Likely deal value: ${x.val?inr(x.val):'unknown'}. Our notes: ${x.step||'none'}.
+${x.brief?'OUR RESEARCH NOTES ON THEM:\n'+x.brief.slice(0,1200)+'\n':''}CONVERSATION SO FAR:\n${hist}
 WHAT WE WANT FROM THIS MESSAGE: ${goal}. TONE: ${c.tone||'Warm'}.`;
   const sign=`Sign off as ${me}, ${p.company}.`;
   const T={
@@ -1126,7 +1142,7 @@ function vOutreach(){
   const list=open.map(x=>({x,s:dealStatus(x)})).filter(r=>f==='all'||r.s.k===f).sort((a,b)=>a.s.o-b.s.o||(b.x.val||0)-(a.x.val||0));
   if(!UI.outDeal||!DL().some(d=>d.id===UI.outDeal))UI.outDeal=(list[0]||{x:{}}).x.id;
   const x=DL().find(d=>d.id===UI.outDeal);
-  return `<header class="pagehead"><div><div class="eyebrow">Outreach · ${esc(p.company)}</div><h1 style="margin-top:8px">Write to leads. Follow up. Win them.</h1><p class="lede">Pick a lead, let the AI write the email, WhatsApp message, pitch or proposal, send it, and keep every reply and follow-up in one place.</p></div></header>
+  return `<header class="pagehead"><div><div class="eyebrow">Inbox · ${esc(p.company)}</div><h1 style="margin-top:8px">Write to leads. Follow up. Win them.</h1><p class="lede">Pick a lead, let the AI write the email, WhatsApp message, pitch or proposal, send it, and keep every reply and follow-up in one place.</p></div>${OUT_CAN_EMAIL()&&dueEmails().length?`<button class="btn primary" data-act="out-bulk">Send ${dueEmails().length} due ${dueEmails().length===1?'email':'emails'}</button>`:''}</header>
   <div class="tiles4">
    <div class="tile"><div class="k"><i></i>Sent in the last 7 days</div><div class="v">${st.sent}</div></div>
    <div class="tile"><div class="k"><i style="background:var(--good)"></i>Reply rate</div><div class="v">${st.rate==null?'—':Math.round(st.rate*100)+'%'}</div><div class="small muted">Leads who wrote back</div></div>
@@ -1140,7 +1156,7 @@ function vOutreach(){
     <div class="ol">${list.map(({x:d,s})=>`<button class="oli ${d.id===UI.outDeal?'on':''}" data-act="out-open" data-id="${d.id}"><span class="avatar sm" style="background:${COLORS[(d.n||'').length%COLORS.length]}">${esc(initials(d.n))}</span><span class="grow"><b>${esc(d.n)}</b><span class="small muted">${esc(d.person||'No contact yet')}${d.val?' · '+inr(d.val):''}</span></span><span class="pill ${s.tone}">${s.t}</span></button>`).join('')||'<div class="empty" style="font-size:13px">No leads in this filter.</div>'}</div>
    </aside>
    ${x?outDetail(x):''}
-  </div>`:`<section class="card"><div class="es"><div class="es-ic accent">${ICON.team}</div><b>Add a lead to start writing</b><span>Find prospects in Find leads, or add a deal in Customers. Then come back here to contact them.</span><button class="btn primary" data-act="nav" data-v="leads">Find leads</button></div></section>`}
+  </div>`:`<section class="card"><div class="es"><div class="es-ic accent">${ICON.team}</div><b>Add a lead to start writing</b><span>Find prospects in Find leads, or add a deal in Customers. Then come back here to contact them.</span><button class="btn primary" data-act="nav" data-v="find">Find leads</button></div></section>`}
   <p class="small muted">Write only to people with a genuine business reason to hear from you, say who you are, and stop when someone asks you to. Emails sent from Growth Planner go out with your name, replies come to your own inbox, and every email includes a way to opt out.</p>`;
 }
 function outDetail(x){
@@ -1153,14 +1169,16 @@ function outDetail(x){
    :c.type==='linkedin'?`<button class="btn" data-act="out-copy">Copy</button><a class="btn" href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent((x.person||'')+' '+x.n)}" target="_blank" rel="noopener">Find them on LinkedIn ↗</a><button class="btn ghost" data-act="out-mark">I sent it</button>`
    :`<button class="btn" data-act="out-copy">Copy</button><button class="btn" data-act="out-to-email">Put it in an email</button><button class="btn ghost" data-act="out-save">Save to this conversation</button>`;
   return `<section class="odetail card">
-   <div class="spread" style="align-items:flex-start"><div style="min-width:0"><div class="eyebrow">${PST[x.stage][1]}${x.val?' · '+inr(x.val):''}</div><h2 style="margin-top:4px">${esc(x.n)}</h2></div><button class="btn sm ghost" data-act="nav" data-v="sales">Open in Customers ${ICON.arrow}</button></div>
+   <div class="spread" style="align-items:flex-start"><div style="min-width:0"><div class="eyebrow">${PST[x.stage][1]}${x.val?' · '+inr(x.val):''}</div><h2 style="margin-top:4px">${esc(x.n)} ${scorePill(x)}</h2></div><button class="btn sm ghost" data-act="nav" data-v="sales">Open in Pipeline ${ICON.arrow}</button></div>
+   ${x.dnc?`<div class="alert bad">${ICON.warn}<div><b>Do not contact.</b> They asked not to hear from you, so sending is switched off for this lead. <button class="btn sm ghost" data-act="lead-dnc" data-id="${x.id}">Undo</button></div></div>`:''}
+   <details class="brief" ${UI.briefOpen===x.id||!x.brief?'open':''}><summary><b>Research brief</b> <span class="small muted">${x.brief?'What they care about, talking points, questions':'Let the AI prepare you before you write'}</span></summary>${x.brief?`<div class="aiout" id="ai-brief">${md(x.brief)}</div>`:UI.gen==='brief'?`<div class="aiout" id="ai-brief"><span class="typing"><i></i><i></i><i></i></span></div>`:''}<button class="btn sm" style="margin-top:8px" data-act="lead-research" data-id="${x.id}" ${UI.gen?'disabled':''}>${ICON.advisor.replace('<svg','<svg width="14" height="14"')} ${x.brief?'Research again':'Research this lead'}</button></details>
    <div class="ocontact">
     <div class="field"><label for="oc-p-${x.id}">Contact person</label><input class="input" id="oc-p-${x.id}" data-arr="deals" data-id="${x.id}" data-f="person" value="${esc(x.person||'')}" placeholder="Name"></div>
     <div class="field"><label for="oc-r-${x.id}">Role</label><input class="input" id="oc-r-${x.id}" data-arr="deals" data-id="${x.id}" data-f="role" value="${esc(x.role||'')}" placeholder="e.g. Head of F&B"></div>
     <div class="field"><label for="oc-e-${x.id}">Email</label><input class="input" type="email" id="oc-e-${x.id}" data-arr="deals" data-id="${x.id}" data-f="email" value="${esc(x.email||'')}" placeholder="name@company.com"></div>
     <div class="field"><label for="oc-w-${x.id}">WhatsApp</label><input class="input" type="tel" id="oc-w-${x.id}" data-arr="deals" data-id="${x.id}" data-f="phone" value="${esc(x.phone||'')}" placeholder="10-digit mobile number"></div>
    </div>
-   <div class="ocomp">
+   ${x.dnc?'':`<div class="ocomp">
     <div class="filters" role="tablist" aria-label="What to write">${OTYPES.map(([k,n])=>`<button class="chip" data-act="out-type" data-v="${k}" aria-pressed="${c.type===k}">${n}</button>`).join('')}</div>
     <div class="grid g-2" style="gap:10px">
      <div class="field"><label for="comp-goal">What do you want from them?</label><input class="input" id="comp-goal" value="${esc(c.goal)}" placeholder="${esc({lead:'A 15-minute call',talk:'A short meeting or demo',meet:'Agree to see a proposal',prop:'A decision on the proposal'}[x.stage]||'A reply')}"></div>
@@ -1171,11 +1189,12 @@ function outDetail(x){
     ${c.type==='email'&&!x.email?`<p class="small" style="color:var(--warn)">Add their email above to send this.</p>`:''}${c.type==='whatsapp'&&!x.phone?`<p class="small" style="color:var(--warn)">Add their WhatsApp number above to open the chat.</p>`:''}
     <div class="row">${busy?`<button class="btn" data-act="lead-stop">Stop</button>`:`<button class="btn ${c.body?'':'primary'}" data-act="out-write" ${UI.gen?'disabled':''}>${ICON.advisor.replace('<svg','<svg width="16" height="16"')} ${c.body?'Write it again':'Write it with AI'}</button>`}${actions}</div>
     ${isMsg?`<div class="row osched"><label class="small muted" for="comp-when">Or send later:</label><input class="input" type="date" id="comp-when" value="${c.when}" min="${iso(TODAY)}"><button class="btn sm" data-act="out-schedule">Schedule</button></div>`:''}
-   </div>
+    <div class="row otpl"><select class="input" id="tpl-pick" aria-label="Use a template"><option value="">Use a saved template…</option>${TP().filter(t=>t.ch===c.type||(!isMsg&&t.ch===c.type)).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select><button class="btn sm ghost" data-act="tpl-save">Save as template</button></div>
+   </div>`}
    <div class="otl">
     <div class="spread"><h3>Conversation</h3><div class="row" style="gap:6px">${needFU?`<button class="btn sm" data-act="out-fu">Add day-3 and day-7 follow-ups</button>`:''}<button class="btn sm primary" data-act="out-reply">Log their reply</button></div></div>
     ${ms.length?`<ol class="tl">${ms.slice().reverse().map(m=>{const due=m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY;return `<li class="${m.dir} ${m.status} ${due?'due':''}">
-      <div class="tlh"><span class="tag">${OCH[m.ch]||m.ch}${m.kind&&m.kind!=='message'?' · '+(m.kind==='pitch'?'Pitch':'Proposal'):''}</span><span class="small muted">${m.status==='scheduled'?(due?'<b style="color:var(--warn)">Due today</b>':'Scheduled for '+fmtD(parseISO(m.sendAt))):(m.dir==='in'?'They replied':'You sent')+' · '+fmtD(parseISO(m.at))}${m.outcome?' · '+esc((OUTCOMES.find(o=>o[0]===m.outcome)||[,''])[1]):''}${m.via==='app'?' · sent from Growth Planner':''}</span></div>
+      <div class="tlh"><span class="tag">${OCH[m.ch]||m.ch}${m.kind&&m.kind!=='message'?' · '+(m.kind==='pitch'?'Pitch':'Proposal'):''}</span>${m.camp?`<span class="pill accent" style="font-size:11px">${esc((CP().find(k=>k.id===m.camp)||{}).name||'Campaign')}</span>`:''}<span class="small muted">${m.status==='scheduled'?(due?'<b style="color:var(--warn)">Due today</b>':'Scheduled for '+fmtD(parseISO(m.sendAt))):(m.dir==='in'?'They replied':'You sent')+' · '+fmtD(parseISO(m.at))}${m.outcome?' · '+esc((OUTCOMES.find(o=>o[0]===m.outcome)||[,''])[1]):''}${m.via==='app'?' · sent from Growth Planner':''}</span></div>
       ${m.subject?`<div class="t">${esc(m.subject)}</div>`:''}<div class="tlb">${md((m.body||'').slice(0,700)+((m.body||'').length>700?'…':''))}</div>
       ${m.status==='scheduled'?`<div class="row" style="gap:6px;margin-top:6px"><button class="btn sm ${due?'primary':''}" data-act="out-load" data-id="${m.id}">${due?'Send it now':'Edit or send now'}</button><button class="btn sm ghost" data-act="out-cancel" data-id="${m.id}">Cancel</button></div>`:''}
       ${m.dir==='in'?`<button class="btn sm" style="margin-top:6px" data-act="out-answer" data-id="${m.id}">Write a reply with AI</button>`:''}
@@ -1195,10 +1214,258 @@ function openReplyLog(x){
 }
 function outDueMoves(c){
   const ms=MS(),due=ms.filter(m=>m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY);
-  if(due.length)c.push({t:`Send ${due.length} follow-up${due.length===1?'':'s'} due today`,why:`To ${[...new Set(due.map(m=>(DL().find(d=>d.id===m.deal)||{}).n).filter(Boolean))].slice(0,3).join(', ')}. Follow-ups win more deals than first messages.`,tag:'Sales',go:'outreach',pr:82,how:['Open Outreach and filter by “Due”.','Check each follow-up still makes sense, then send it.','If they already replied, log the reply instead.']});
+  if(due.length)c.push({t:`Send ${due.length} follow-up${due.length===1?'':'s'} due today`,why:`To ${[...new Set(due.map(m=>(DL().find(d=>d.id===m.deal)||{}).n).filter(Boolean))].slice(0,3).join(', ')}. Follow-ups win more deals than first messages.`,tag:'Sales',go:'outreach',pr:82,how:['Open the Inbox and filter by “Due”.','Check each follow-up still makes sense, then send it.','If they already replied, log the reply instead.']});
   const lastIn=DL().map(d=>{const m=dealMsgs(d.id).filter(q=>q.status!=='scheduled');const l=m[m.length-1];return l&&l.dir==='in'?{d,l}:null}).filter(Boolean).sort((a,b)=>(b.d.val||0)-(a.d.val||0))[0];
-  if(lastIn)c.push({t:`Reply to ${lastIn.d.n}`,why:`They wrote back on ${fmtD(parseISO(lastIn.l.at))}. A quick answer keeps the deal warm.`,tag:'Sales',go:'outreach',pr:84,how:['Open Outreach and pick this lead.','Press “Write a reply with AI” under their message.','Check it, then send it.']});
+  if(lastIn)c.push({t:`Reply to ${lastIn.d.n}`,why:`They wrote back on ${fmtD(parseISO(lastIn.l.at))}. A quick answer keeps the deal warm.`,tag:'Sales',go:'outreach',pr:84,how:['Open the Inbox and pick this lead.','Press “Write a reply with AI” under their message.','Check it, then send it.']});
 }
+
+function dueEmails(){return MS().filter(m=>m.status==='scheduled'&&m.ch==='email'&&parseISO(m.sendAt)<=TODAY).filter(m=>{const x=DL().find(d=>d.id===m.deal);return x&&x.email&&!x.dnc&&m.subject&&m.body})}
+
+
+function CAPTURE_HTML(){const link=location.origin+'/f/'+(GP.companyId||'');return `<section class="card cap"><div><div class="eyebrow">Inbound</div><h2 style="margin-top:4px">Let leads come to you</h2><p class="muted" style="margin-top:6px">Put this enquiry form link on your website, Instagram bio, Google Business profile or a QR code at events. Every enquiry arrives here as a lead, ready to answer.</p></div>
+  <div class="row"><input class="input" id="cap-link" readonly value="${esc(link)}" aria-label="Your enquiry form link" style="flex:1;min-width:220px"><button class="btn" data-act="cap-copy">Copy link</button><a class="btn" href="${esc(link)}" target="_blank" rel="noopener">Open form ↗</a></div></section>`}
+async function pullInbound(){
+  if(!S||S.sample||!S.profile)return;
+  try{const r=await fetch('/api/inbound',{cache:'no-store'});if(!r.ok)return;const j=await r.json();const items=j.items||[];if(!items.length)return;
+    const ids=[];items.forEach(it=>{const x={id:uid(),n:it.company||it.name,person:it.company?it.name:'',email:it.email||'',phone:it.phone||'',city:'',seg:'',val:0,step:'Answer their enquiry',src:'Website form',stage:'lead',next:iso(TODAY)};DL().push(x);
+      MS().push({id:uid(),deal:x.id,dir:'in',ch:it.email?'email':'whatsapp',status:'logged',at:String(it.created_at||'').slice(0,10)||iso(TODAY),outcome:'interested',body:it.message||'Sent an enquiry through your form.'});ids.push(it.id)});
+    save();await fetch('/api/inbound',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ack:ids})});rerender();
+    toast(`${items.length} new ${items.length===1?'enquiry':'enquiries'} from your form. They’re in Sales.`)}catch(_){}
+}
+/* ================= sales module: overview, lead database, campaigns, templates ================= */
+function CP(){return S.camps=S.camps||[]}
+function TP(){return S.tpls=S.tpls||[]}
+const SRCS=['Referral','Inbound','Website form','Cold outreach','Lead finder','Imported','Event','Marketplace','GeM / government'];
+const STOPW=new Set(['and','the','for','with','team','teams','from','our','who','buy','buys','that','are','etc','like','other','small','large']);
+const wds=t=>(String(t||'').toLowerCase().match(/[a-z]{3,}/g)||[]).filter(w=>!STOPW.has(w));
+function leadScore(x){
+  const L=LD(),r=[];let s=0;
+  if(x.dnc)return{s:0,r:['Asked not to be contacted'],band:['bad','Do not contact']};
+  const icp=wds((L.in.buyers||'')+' '+(L.in.segment||'')),txt=wds([x.n,x.seg,x.role,x.step].join(' '));
+  if(icp.length&&txt.some(w=>icp.some(k=>w.slice(0,5)===k.slice(0,5)))){s+=30;r.push('Matches your ideal customer')}
+  if(/(founder|owner|ceo|md\b|director|head|manager|purchase|procure|partner|buyer|admin|hr)/i.test(x.role||'')){s+=15;r.push('Contact can decide or influence')}
+  if(x.email||x.phone){s+=10;r.push('Contact details on file')}
+  const vals=DL().filter(d=>d.val).map(d=>d.val),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+  if(x.val){s+=avg&&x.val>=avg?15:8;r.push(avg&&x.val>=avg?'Above-average deal size':'Deal value known')}
+  const sp={Referral:15,Inbound:15,'Website form':15,Event:8,'GeM / government':10}[x.src];if(sp){s+=sp;r.push(x.src+' lead')}
+  const ms=dealMsgs(x.id);if(ms.some(m=>m.dir==='in')){s+=20;r.push('Has replied to you')}
+  if(['meet','prop','won'].includes(x.stage)){s+=10;r.push('Past the first meeting')}
+  s=Math.min(100,s);return{s,r,band:s>=60?['good','Hot']:s>=35?['warn','Warm']:['','Cold']};
+}
+function scorePill(x){const k=leadScore(x);return `<span class="pill ${k.band[0]} score" title="${esc(k.r.join(' · ')||'No signals yet')}">${k.band[1]}${x.dnc?'':' · '+k.s}</span>`}
+function funnel(){const d=DL(),ms=MS();
+  const out=new Set(ms.filter(m=>m.dir==='out'&&m.status==='sent').map(m=>m.deal)),inn=new Set(ms.filter(m=>m.dir==='in').map(m=>m.deal));
+  const adv=x=>['meet','prop','won'].includes(x.stage);
+  return [['Leads',d.length],['Contacted',d.filter(x=>out.has(x.id)||x.stage!=='lead').length],['Replied',d.filter(x=>inn.has(x.id)||adv(x)).length],['Meeting or proposal',d.filter(adv).length],['Won',d.filter(x=>x.stage==='won').length]]}
+function vSalesHome(){
+  const p=S.profile,fn=funnel(),o=outStats(),top=fn[0][1]||1;
+  const today=[];
+  DL().forEach(x=>{if(x.dnc)return;const s=dealStatus(x),sc=leadScore(x);
+    if(s.k==='due')today.push({x,t:'Follow-up due',a:'Send it',o:0});
+    else if(s.k==='replied')today.push({x,t:'Replied to you',a:'Answer',o:1});
+    else if(s.k==='new'&&sc.s>=50&&x.stage!=='won')today.push({x,t:`Hot lead (${sc.s}), not contacted`,a:'Write',o:2})});
+  today.sort((a,b)=>a.o-b.o||(b.x.val||0)-(a.x.val||0));
+  const bySrc={};DL().forEach(x=>{const k=x.src||'Other';const r=bySrc[k]=bySrc[k]||{n:0,c:0,r:0,w:0,v:0};r.n++;const ms=dealMsgs(x.id);if(ms.some(m=>m.dir==='out'&&m.status==='sent')||x.stage!=='lead')r.c++;if(ms.some(m=>m.dir==='in')||['meet','prop','won'].includes(x.stage))r.r++;if(x.stage==='won'){r.w++;r.v+=x.val||0}});
+  const live=CP().filter(c=>c.status==='running');
+  return `<header class="pagehead"><div><div class="eyebrow">Sales · ${esc(p.company)}</div><h1 style="margin-top:8px">From stranger to customer.</h1><p class="lede">Find leads, write to them with AI, follow up on time and see what turns into sales. Everything here feeds This week.</p></div><div class="row"><button class="btn" data-act="lead-import">Import leads</button><button class="btn primary" data-act="camp-new">New campaign</button></div></header>
+  <section class="card">
+   <div class="card-head"><div><h2>Your funnel</h2><p class="small muted" style="margin-top:4px">Every lead you’ve added, and how far each one got.</p></div><span class="pill ${o.rate!=null&&o.rate>=.2?'good':'accent'}">${o.rate==null?'No replies yet':Math.round(o.rate*100)+'% reply rate'}</span></div>
+   <div class="fnl">${fn.map(([k,v],i)=>`<div class="fst"><div class="fbar" style="width:${Math.max(4,v/top*100)}%"></div><div class="fl"><b class="num">${v}</b> ${k}${i?`<span class="muted small"> · ${fn[i-1][1]?Math.round(v/fn[i-1][1]*100):0}% of previous</span>`:''}</div></div>`).join('')}</div>
+  </section>
+  <div class="grid g-main">
+   <section class="card">
+    <div class="card-head"><h2>Do these today</h2><span class="pill">${today.length}</span></div>
+    ${today.length?`<div class="list">${today.slice(0,7).map(({x,t,a})=>`<div class="li"><span class="avatar sm" style="background:${COLORS[(x.n||'').length%COLORS.length]}">${esc(initials(x.n))}</span><div class="grow"><div class="t">${esc(x.n)}</div><div class="small muted">${t}${x.person?' · '+esc(x.person):''}</div></div><button class="btn sm ${a==='Answer'?'primary':''}" data-act="out-open" data-id="${x.id}">${a}</button></div>`).join('')}</div>`
+     :`<div class="es"><div class="es-ic good">${ICON.tick}</div><b>Nothing waiting on you</b><span>Find new leads or start a campaign to keep the pipeline full.</span><button class="btn primary" data-act="nav" data-v="find">Find leads</button></div>`}
+   </section>
+   <aside class="card stack" style="align-self:start">
+    <h3>This week</h3>
+    <div class="tiles"><div class="tile"><div class="k"><i></i>Messages sent</div><div class="v">${o.sent}</div></div><div class="tile"><div class="k"><i style="background:var(--warn)"></i>Follow-ups due</div><div class="v">${o.due}</div></div><div class="tile"><div class="k"><i style="background:var(--accent)"></i>Not contacted</div><div class="v">${o.fresh}</div></div><div class="tile"><div class="k"><i style="background:var(--good)"></i>Live campaigns</div><div class="v">${live.length}</div></div></div>
+    ${live.length?`<div class="list small">${live.map(c=>{const k=campStats(c);return `<div class="li"><div class="grow"><b>${esc(c.name)}</b><br><span class="muted">${k.sent} sent · ${k.replied} replied · ${k.due} due</span></div><button class="btn sm ghost" data-act="camp-open" data-id="${c.id}">Open</button></div>`}).join('')}</div>`:''}
+   </aside>
+  </div>
+  <section class="card">
+   <div class="card-head"><div><h2>Where your best leads come from</h2><p class="small muted" style="margin-top:4px">Spend more time on the sources that reply and buy.</p></div></div>
+   ${Object.keys(bySrc).length?`<div class="tbl-wrap"><table><thead><tr><th>Source</th><th>Leads</th><th>Contacted</th><th>Replied</th><th>Reply rate</th><th>Won</th><th>Won value</th></tr></thead><tbody>${Object.entries(bySrc).sort((a,b)=>b[1].w-a[1].w||b[1].r-a[1].r).map(([k,r])=>`<tr><td><b>${esc(k)}</b></td><td>${r.n}</td><td>${r.c}</td><td>${r.r}</td><td>${r.c?Math.round(r.r/r.c*100)+'%':'—'}</td><td>${r.w}</td><td>${inr(r.v)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Add leads to see this.</div>'}
+  </section>
+  ${captureCard()}`;
+}
+
+/* ---------- lead database ---------- */
+function leadRows(){
+  const q=(UI.lq||'').toLowerCase().trim(),f=UI.lf||'all',src=UI.lsrc||'';
+  return DL().filter(x=>{
+    if(q&&![x.n,x.person,x.role,x.email,x.phone,x.seg,x.city].join(' ').toLowerCase().includes(q))return false;
+    if(src&&(x.src||'')!==src)return false;
+    if(f==='dnc')return !!x.dnc;if(x.dnc&&f!=='all')return false;
+    const s=dealStatus(x),k=leadScore(x);
+    if(f==='hot')return k.s>=60&&x.stage!=='won'&&x.stage!=='lost';
+    if(f==='new')return s.k==='new'&&x.stage!=='won'&&x.stage!=='lost';
+    if(f==='replied')return s.k==='replied';
+    if(f==='open')return x.stage!=='won'&&x.stage!=='lost';
+    return true}).map(x=>({x,k:leadScore(x),s:dealStatus(x)})).sort((a,b)=>(UI.lsort==='value'?(b.x.val||0)-(a.x.val||0):b.k.s-a.k.s));
+}
+function lastTouch(x){const m=dealMsgs(x.id).filter(q=>q.status!=='scheduled');const l=m[m.length-1];return l?fmtD(parseISO(l.at)):'—'}
+function vLeadsDb(){
+  const p=S.profile,rows=leadRows(),sel=UI.sel=UI.sel||new Set();[...sel].forEach(id=>{if(!DL().some(d=>d.id===id))sel.delete(id)});
+  const all=DL().length,hot=DL().filter(x=>!x.dnc&&leadScore(x).s>=60&&x.stage!=='won'&&x.stage!=='lost').length;
+  return `<header class="pagehead"><div><div class="eyebrow">Leads · ${all} in total · ${hot} hot</div><h1 style="margin-top:8px">Every lead in one list.</h1><p class="lede">Scored by how well they fit your ideal customer and how they’ve responded. Pick the best ones and start a campaign.</p></div><div class="row"><button class="btn" data-act="lead-import">Import from CSV</button><button class="btn primary" data-act="lead-add">Add a lead</button></div></header>
+  <section class="card">
+   <div class="ltool">
+    <input class="input" id="lq" data-lq placeholder="Search name, contact, city…" value="${esc(UI.lq||'')}" aria-label="Search leads">
+    <div class="filters">${[['all','All'],['open','Open'],['hot','Hot'],['new','Not contacted'],['replied','Replied'],['dnc','Do not contact']].map(([k,n])=>`<button class="chip" data-act="lf" data-v="${k}" aria-pressed="${(UI.lf||'all')===k}">${n}</button>`).join('')}</div>
+    <select class="input" id="lsrc" data-lsrc aria-label="Source" style="width:auto"><option value="">All sources</option>${[...new Set(DL().map(x=>x.src).filter(Boolean))].map(s=>`<option ${UI.lsrc===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+    <select class="input" id="lsort" data-lsort aria-label="Sort" style="width:auto"><option value="score">Best fit first</option><option value="value" ${UI.lsort==='value'?'selected':''}>Biggest value first</option></select>
+   </div>
+   ${sel.size?`<div class="bulk"><b>${sel.size} selected</b><button class="btn sm primary" data-act="bulk-camp">Add to a campaign</button><button class="btn sm" data-act="bulk-dnc">Mark do not contact</button><button class="btn sm ghost" data-act="bulk-del">Delete</button><button class="btn sm ghost" data-act="bulk-clear">Clear</button></div>`:''}
+   ${rows.length?`<div class="tbl-wrap"><table class="ltbl"><thead><tr><th><input type="checkbox" id="sel-all" data-act="sel-all" aria-label="Select all" ${rows.length&&rows.every(r=>sel.has(r.x.id))?'checked':''}></th><th>Lead</th><th>Fit</th><th>Status</th><th>Source</th><th>Value</th><th>Last touch</th><th></th></tr></thead><tbody>
+    ${rows.map(({x,s})=>`<tr class="${x.dnc?'dnc':''}"><td><input type="checkbox" data-act="sel" data-id="${x.id}" aria-label="Select ${esc(x.n)}" ${sel.has(x.id)?'checked':''}></td>
+     <td class="lcell"><b>${esc(x.n)}</b><span class="small muted">${esc([x.person,x.role].filter(Boolean).join(', ')||'No contact yet')}${x.city?' · '+esc(x.city):''}</span><span class="lic">${x.email?'<span title="Has email">✉</span>':''}${x.phone?'<span title="Has WhatsApp">☏</span>':''}${x.brief?'<span title="Researched">✦</span>':''}</span></td>
+     <td>${scorePill(x)}</td><td><span class="pill ${x.stage==='won'?'good':x.stage==='lost'?'':s.tone}">${x.stage==='won'?'Won':x.stage==='lost'?'Lost':s.t}</span></td><td class="small">${esc(x.src||'—')}</td><td class="num">${x.val?inr(x.val):'—'}</td><td class="small">${lastTouch(x)}</td>
+     <td><div class="row" style="gap:4px;flex-wrap:nowrap"><button class="btn sm" data-act="out-open" data-id="${x.id}" ${x.dnc?'disabled':''}>Message</button><button class="btn sm ghost" data-act="lead-edit" data-id="${x.id}">Edit</button></div></td></tr>`).join('')}
+   </tbody></table></div>`:`<div class="es"><div class="es-ic accent">${ICON.team}</div><b>${all?'No leads match':'No leads yet'}</b><span>${all?'Try another filter or search.':'Import a list, add one by hand, or use Find leads to discover prospects.'}</span>${all?'':'<button class="btn primary" data-act="lead-import">Import from CSV</button>'}</div>`}
+   <p class="small muted" style="margin-top:12px">Fit score: matches your ideal customer +30, decision maker +15, contact details +10, deal size +8 to +15, referral or inbound +15, replied +20, past first meeting +10. Hover a score to see why.</p>
+  </section>`;
+}
+function leadForm(x){x=x||{};return `<div><div class="eyebrow">${x.id?'Edit lead':'Add a lead'}</div><h2 style="margin-top:4px">${x.id?esc(x.n):'New lead'}</h2></div>
+  <form class="stack" data-form="lead-full" data-id="${x.id||''}">
+   <div class="grid g-2" style="gap:10px">
+    <div class="field" style="grid-column:1/-1"><label for="lf-n">Business name</label><input class="input" id="lf-n" name="n" required value="${esc(x.n||'')}"></div>
+    <div class="field"><label for="lf-p">Contact person</label><input class="input" id="lf-p" name="person" value="${esc(x.person||'')}"></div>
+    <div class="field"><label for="lf-r">Role</label><input class="input" id="lf-r" name="role" value="${esc(x.role||'')}"></div>
+    <div class="field"><label for="lf-e">Email</label><input class="input" type="email" id="lf-e" name="email" value="${esc(x.email||'')}"></div>
+    <div class="field"><label for="lf-w">WhatsApp</label><input class="input" type="tel" id="lf-w" name="phone" value="${esc(x.phone||'')}"></div>
+    <div class="field"><label for="lf-s">Type of business</label><input class="input" id="lf-s" name="seg" value="${esc(x.seg||'')}" placeholder="e.g. Specialty café"></div>
+    <div class="field"><label for="lf-c">City</label><input class="input" id="lf-c" name="city" value="${esc(x.city||'')}"></div>
+    <div class="field"><label for="lf-v">Likely value (₹ a year)</label><input class="input num" type="number" step="any" min="0" id="lf-v" name="val" value="${x.val||''}"></div>
+    <div class="field"><label for="lf-src">Source</label><select class="input" id="lf-src" name="src">${SRCS.map(s=>`<option ${(x.src||'Cold outreach')===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="field" style="grid-column:1/-1"><label for="lf-st">Notes or next step</label><input class="input" id="lf-st" name="step" value="${esc(x.step||'')}"></div>
+   </div>
+   ${x.id?`<label class="row small"><input type="checkbox" name="dnc" ${x.dnc?'checked':''}> They asked not to be contacted</label>`:''}
+   <div class="row"><button class="btn primary">${x.id?'Save':'Add lead'}</button><button type="button" class="btn ghost" data-act="close-layer">Cancel</button></div>
+  </form>`}
+
+/* ---------- CSV import ---------- */
+function parseCSV(t){const rows=[];let row=[],cur='',q=false;t=t.replace(/\r\n?/g,'\n');const sep=(t.split('\n')[0].match(/\t/g)||[]).length>(t.split('\n')[0].match(/,/g)||[]).length?'\t':',';
+  for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch==='"'){if(t[i+1]==='"'){cur+='"';i++}else q=false}else cur+=ch}
+    else if(ch==='"')q=true;else if(ch===sep){row.push(cur);cur=''}else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur=''}else cur+=ch}
+  if(cur||row.length){row.push(cur);rows.push(row)}return rows.filter(r=>r.some(c=>c.trim()))}
+const COLMAP=[['n',/^(company|business|organi[sz]ation|account|firm|shop|store|brand|company name|business name)$/],['person',/^(contact|contact person|contact name|person|full name|name|owner)$/],['role',/^(role|title|job title|designation|position)$/],['email',/^(email|e-mail|email address|mail)$/],['phone',/^(phone|mobile|whatsapp|contact number|phone number|mobile number|number)$/],['city',/^(city|location|town|area)$/],['seg',/^(segment|industry|category|type|business type|sector)$/],['val',/^(value|deal value|amount|deal size|budget)$/],['step',/^(notes?|comments?|remarks?)$/],['src',/^(source|lead source)$/]];
+function mapHeaders(h){const m={};h.forEach((c,i)=>{const k=c.trim().toLowerCase();for(const [f,re] of COLMAP)if(re.test(k)&&m[f]==null){m[f]=i;break}});if(m.n==null&&m.person!=null){m.n=m.person;delete m.person}return m}
+function previewImport(text){const rows=parseCSV(text);if(rows.length<2)return{err:'Paste at least a header row and one lead.'};
+  const m=mapHeaders(rows[0]);if(m.n==null)return{err:'Couldn’t find a name or company column. Add a header row such as: Company, Contact, Email, Phone, City.'};
+  const have=new Set(DL().map(x=>(x.email||'').toLowerCase()).filter(Boolean)),haveN=new Set(DL().map(x=>x.n.toLowerCase()));
+  const items=[];let dup=0;for(const r of rows.slice(1,2001)){const g=f=>m[f]!=null?(r[m[f]]||'').trim():'';const n=g('n');if(!n)continue;const em=g('email').toLowerCase();
+    if((em&&have.has(em))||haveN.has(n.toLowerCase())){dup++;continue}have.add(em);haveN.add(n.toLowerCase());
+    items.push({id:uid(),n,person:g('person'),role:g('role'),email:/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)?em:'',phone:g('phone'),city:g('city'),seg:g('seg'),val:+String(g('val')).replace(/[^\d.]/g,'')||0,step:g('step'),src:SRCS.includes(g('src'))?g('src'):'Imported',stage:'lead',next:''})}
+  return{items,dup,cols:Object.keys(m)}}
+function openImport(){UI.imp=null;openLayer(`<div><div class="eyebrow">Import leads</div><h2 style="margin-top:4px">Bring in your list</h2><p class="small muted" style="margin-top:6px">From Excel, Google Sheets, IndiaMART, an event list or your phone contacts. Save it as CSV, or copy the rows and paste them here. Include a header row: Company, Contact, Role, Email, Phone, City, Type, Value, Notes.</p></div>
+  <div class="field"><label for="imp-file">CSV file</label><input class="input" type="file" id="imp-file" accept=".csv,.tsv,.txt,text/csv"></div>
+  <div class="field"><label for="imp-text">Or paste rows</label><textarea class="input mono" id="imp-text" rows="7" placeholder="Company,Contact,Email,Phone,City&#10;Brewhouse Cafés,Kabir Shah,kabir@example.com,98xxxxxxxx,Mumbai"></textarea></div>
+  <div id="imp-prev" class="small muted">Nothing read yet.</div>
+  <p class="small muted">Only import people you have a genuine business reason to contact. Duplicates (same email or name) are skipped.</p>
+  <div class="row"><button class="btn primary" data-act="imp-go" id="imp-go" disabled>Import</button><button class="btn ghost" data-act="close-layer">Cancel</button></div>`);
+  const prev=t=>{const r=previewImport(t);UI.imp=r;const el=document.getElementById('imp-prev'),go=document.getElementById('imp-go');if(!el)return;
+    if(r.err){el.innerHTML=`<span style="color:var(--bad)">${esc(r.err)}</span>`;go.disabled=true;return}
+    el.innerHTML=`Ready to import <b style="color:var(--ink)">${r.items.length}</b> ${r.items.length===1?'lead':'leads'}${r.dup?`, skipping ${r.dup} already in your list`:''}. Columns found: ${r.cols.map(c=>({n:'name',person:'contact',role:'role',email:'email',phone:'phone',city:'city',seg:'type',val:'value',step:'notes',src:'source'}[c])).join(', ')}.`;go.disabled=!r.items.length};
+  document.getElementById('imp-file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(f.size>3e6){toast('That file is over 3 MB. Split it into smaller files.');return}const rd=new FileReader();rd.onload=()=>{document.getElementById('imp-text').value=String(rd.result).slice(0,500000);prev(String(rd.result))};rd.readAsText(f)});
+  document.getElementById('imp-text').addEventListener('input',e=>prev(e.target.value));
+}
+
+/* ---------- AI research ---------- */
+async function leadResearch(id){
+  const x=DL().find(d=>d.id===id);if(!x||UI.gen)return;const p=S.profile,L=LD();
+  UI.gen='brief';UI.briefOpen=id;x.brief='';rerender();let text='';
+  const prompt=`OUR COMPANY: ${p.company}. What we sell: ${L.in.sell||p.sector}. Who usually buys: ${L.in.buyers||'not given'}.${L.out.icp?'\nOur ideal customer profile:\n'+L.out.icp.slice(0,1200):''}
+LEAD: ${x.n}${x.seg?' ('+x.seg+')':''}${x.city?', '+x.city:''}. Contact: ${x.person||'unknown'}${x.role?', '+x.role:''}. Our notes: ${x.step||'none'}.
+TASK: Write a short research brief to prepare the founder before contacting this lead. Using only what is given plus general knowledge of this type of business in India (never invent facts about this specific company): 1) what a business like this usually cares about and struggles with; 2) three talking points that connect our product to that; 3) three good questions to ask; 4) the best channel and time to reach this kind of contact; 5) what to check on their website, Google Maps or LinkedIn before writing. Under 220 words. Short "- " bullets with a **bold** label for each part.`;
+  try{text=await OUT_AI(prompt,t=>{const el=document.getElementById('ai-brief');if(el)el.innerHTML=md(t)});x.brief=text.trim()}
+  catch(err){if(err&&err.noAI)UI.outNoAI=true;else toast((err&&err.msg)||'The AI couldn’t do that. Try again.');x.brief=text}
+  UI.gen=null;save();rerender();
+}
+
+/* ---------- campaigns ---------- */
+const VARS=[['{{first_name}}','Contact’s first name'],['{{company}}','Lead’s business name'],['{{my_name}}','Your name'],['{{my_company}}','Your company']];
+function fillVars(t,x){const p=S.profile;return String(t||'').replace(/\{\{\s*first_name\s*\}\}/g,(x.person||'').split(' ')[0]||'there').replace(/\{\{\s*company\s*\}\}/g,x.n).replace(/\{\{\s*my_name\s*\}\}/g,(p.name||'').split(' ')[0]||p.name||'').replace(/\{\{\s*my_company\s*\}\}/g,p.company)}
+function campStats(c){const ms=MS().filter(m=>m.camp===c.id),ids=new Set(c.leads);
+  const replied=DL().filter(x=>ids.has(x.id)&&MS().some(m=>m.deal===x.id&&m.dir==='in'&&(!c.launched||m.at>=c.launched))).length;
+  return{leads:c.leads.length,sent:ms.filter(m=>m.status==='sent').length,due:ms.filter(m=>m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY).length,left:ms.filter(m=>m.status==='scheduled').length,replied,meet:DL().filter(x=>ids.has(x.id)&&['meet','prop','won'].includes(x.stage)).length}}
+function newCamp(){const p=S.profile,L=LD();return{id:uid(),name:`${L.in.segment?L.in.segment.replace(/^./,c=>c.toUpperCase()):'New'} outreach`,who:L.in.segment||L.in.buyers||'',offer:L.in.offer||'',status:'draft',created:iso(TODAY),leads:[],
+  steps:[{day:0,ch:'email',subject:'An idea for {{company}}',body:'Hi {{first_name}},\n\n[One line about them.] We help businesses like {{company}} [result].\n\nWould a 15-minute call this week be useful?\n\n{{my_name}}, {{my_company}}'},
+   {day:3,ch:'whatsapp',subject:'',body:'Hi {{first_name}}, this is {{my_name}} from {{my_company}}. I emailed you about [topic]. Happy to send a sample if that’s easier. Shall I?'},
+   {day:7,ch:'email',subject:'Re: An idea for {{company}}',body:'Hi {{first_name}}, I’ll keep this short. If this isn’t a priority, just tell me and I won’t follow up again. If it is, I’m happy to send samples and prices.\n\n{{my_name}}'}]}}
+function vCampaigns(){
+  const c=UI.camp&&CP().find(k=>k.id===UI.camp);if(c)return campEditor(c);
+  const p=S.profile,cs=CP();
+  return `<header class="pagehead"><div><div class="eyebrow">Campaigns · ${esc(p.company)}</div><h1 style="margin-top:8px">Reach many leads, one person at a time.</h1><p class="lede">A campaign is a short series of messages (for example an email, a WhatsApp a few days later, and a last email) sent to a group of leads, personalised with their names. It stops for anyone who replies.</p></div><button class="btn primary" data-act="camp-new">New campaign</button></header>
+  ${cs.length?`<div class="camps">${cs.slice().reverse().map(c=>{const k=campStats(c);return `<article class="camp card"><div class="spread"><div style="min-width:0"><span class="pill ${c.status==='running'?'good':c.status==='stopped'?'':'accent'}">${{draft:'Draft',running:'Running',stopped:'Stopped'}[c.status]}</span><h3 style="margin-top:6px">${esc(c.name)}</h3><p class="small muted">${c.steps.length} steps · ${c.steps.map(s=>OCH[s.ch]).join(' → ')}</p></div></div>
+     <div class="cst"><div><b class="num">${k.leads}</b><span>Leads</span></div><div><b class="num">${k.sent}</b><span>Sent</span></div><div><b class="num">${k.replied}</b><span>Replied</span></div><div><b class="num">${k.meet}</b><span>Meetings</span></div></div>
+     ${k.due?`<div class="alert warn" style="padding:8px 10px">${ICON.warn}<div>${k.due} ${k.due===1?'message is':'messages are'} due today. Send ${k.due===1?'it':'them'} from the Inbox.</div></div>`:''}
+     <div class="row"><button class="btn sm" data-act="camp-open" data-id="${c.id}">${c.status==='draft'?'Continue setting up':'Open'}</button>${k.due?'<button class="btn sm primary" data-act="nav" data-v="outreach">Go to Inbox</button>':''}</div></article>`}).join('')}</div>`
+   :`<section class="card"><div class="es"><div class="es-ic accent">${ICON.grow}</div><b>Start your first campaign</b><span>Pick the leads, let the AI write a 3-step sequence, and launch. Each message is scheduled and personalised.</span><button class="btn primary" data-act="camp-new">New campaign</button></div></section>`}`;
+}
+function campEditor(c){
+  const ids=new Set(c.leads);const elig=DL().filter(x=>!x.dnc&&x.stage!=='won'&&x.stage!=='lost').map(x=>({x,k:leadScore(x)})).sort((a,b)=>(ids.has(b.x.id)-ids.has(a.x.id))||b.k.s-a.k.s);
+  const _ids=ids,k=campStats(c),locked=c.status!=='draft';
+  const miss=c.leads.map(id=>DL().find(d=>d.id===id)).filter(Boolean).filter(x=>c.steps.some(s=>(s.ch==='email'&&!x.email)||(s.ch==='whatsapp'&&!x.phone))).length;
+  const sampleLead=DL().find(x=>ids.has(x.id))||elig[0]&&elig[0].x||{n:'Brewhouse Cafés',person:'Kabir Shah'};
+  return `<header class="pagehead"><div><button class="btn sm ghost" style="padding-left:0" data-act="camp-back">← All campaigns</button><div class="eyebrow" style="margin-top:6px">Campaign · ${{draft:'Draft',running:'Running',stopped:'Stopped'}[c.status]}</div><h1 style="margin-top:6px">${esc(c.name)}</h1></div>
+   <div class="row">${c.status==='draft'?`<button class="btn" data-act="camp-del" data-id="${c.id}">Delete</button><button class="btn primary" data-act="camp-launch" data-id="${c.id}">Launch to ${c.leads.length} ${c.leads.length===1?'lead':'leads'}</button>`:c.status==='running'?`<button class="btn" data-act="camp-stop" data-id="${c.id}">Stop campaign</button>`:''}</div></header>
+  ${locked?`<div class="tiles4"><div class="tile"><div class="k"><i></i>Leads</div><div class="v">${k.leads}</div></div><div class="tile"><div class="k"><i style="background:var(--accent)"></i>Sent</div><div class="v">${k.sent}</div><div class="small muted">${k.left} still scheduled</div></div><div class="tile"><div class="k"><i style="background:var(--good)"></i>Replied</div><div class="v">${k.replied}</div><div class="small muted">${k.leads?Math.round(k.replied/k.leads*100):0}% of leads</div></div><div class="tile"><div class="k"><i style="background:var(--pop)"></i>Meetings</div><div class="v">${k.meet}</div></div></div>`:''}
+  <div class="grid g-main">
+   <section class="card stack">
+    <div class="grid g-2" style="gap:10px">
+     <div class="field"><label for="cp-n">Campaign name</label><input class="input" id="cp-n" data-camp="name" value="${esc(c.name)}" ${locked?'disabled':''}></div>
+     <div class="field"><label for="cp-w">Who it’s for</label><input class="input" id="cp-w" data-camp="who" value="${esc(c.who)}" placeholder="e.g. Specialty cafés in Mumbai" ${locked?'disabled':''}></div>
+     <div class="field" style="grid-column:1/-1"><label for="cp-o">Offer or hook</label><input class="input" id="cp-o" data-camp="offer" value="${esc(c.offer)}" placeholder="e.g. Free tasting kit for the team" ${locked?'disabled':''}></div>
+    </div>
+    <div class="spread"><h3>Messages</h3>${locked?'':`<div class="row" style="gap:6px"><button class="btn sm" data-act="camp-ai" data-id="${c.id}" ${UI.gen?'disabled':''}>${ICON.advisor.replace('<svg','<svg width="14" height="14"')} ${UI.gen==='camp'?'Writing…':'Write the sequence with AI'}</button><button class="btn sm ghost" data-act="camp-step-add">Add a step</button></div>`}</div>
+    <p class="small muted">Use ${VARS.map(([v,d])=>`<code title="${d}">${v}</code>`).join(' ')} and they’re filled in for each lead. Replace anything in [brackets] before you launch.</p>
+    ${c.steps.map((s,i)=>`<div class="cstep"><div class="row" style="gap:8px"><span class="pill accent">Step ${i+1}</span><label class="small muted" for="cs-d-${i}">Day</label><input class="input num" style="width:70px" type="number" min="0" max="60" id="cs-d-${i}" data-step="${i}" data-f="day" value="${s.day}" ${locked?'disabled':''}><select class="input" style="width:auto" id="cs-c-${i}" data-step="${i}" data-f="ch" ${locked?'disabled':''}>${['email','whatsapp','linkedin'].map(ch=>`<option value="${ch}" ${s.ch===ch?'selected':''}>${OCH[ch]}</option>`).join('')}</select>${locked||c.steps.length<2?'':`<button class="x" data-act="camp-step-del" data-i="${i}" aria-label="Remove step ${i+1}">×</button>`}</div>
+      ${s.ch==='email'?`<input class="input" id="cs-s-${i}" data-step="${i}" data-f="subject" value="${esc(s.subject)}" placeholder="Subject" ${locked?'disabled':''}>`:''}
+      <textarea class="input" id="cs-b-${i}" data-step="${i}" data-f="body" rows="6" ${locked?'disabled':''}>${esc(s.body)}</textarea>
+      <details class="small"><summary class="muted">Preview for ${esc(sampleLead.n)}</summary><div class="tlb" style="margin-top:6px">${s.ch==='email'?`<b>${esc(fillVars(s.subject,sampleLead))}</b><br>`:''}${esc(fillVars(s.body,sampleLead)).replace(/\n/g,'<br>')}</div></details></div>`).join('')}
+   </section>
+   <aside class="card stack" style="align-self:start">
+    <div class="spread"><h3>Leads in this campaign</h3><span class="pill">${c.leads.length}</span></div>
+    ${locked?'':`<div class="row" style="gap:6px"><button class="btn sm" data-act="camp-pick" data-v="hot">Add hot leads</button><button class="btn sm" data-act="camp-pick" data-v="new">Add not contacted</button><button class="btn sm ghost" data-act="camp-pick" data-v="none">Clear</button></div>`}
+    ${miss?`<div class="alert warn" style="padding:8px 10px">${ICON.warn}<div>${miss} ${miss===1?'lead is':'leads are'} missing an email or WhatsApp number for some steps. Those steps are skipped for them.</div></div>`:''}
+    <div class="cpick">${elig.length?elig.map(({x,k})=>`<label class="cpl"><input type="checkbox" data-act="camp-lead" data-id="${x.id}" ${ids.has(x.id)?'checked':''} ${locked?'disabled':''}><span class="grow"><b>${esc(x.n)}</b><span class="small muted">${esc(x.person||'No contact')} ${x.email?'✉':''}${x.phone?' ☏':''}</span></span><span class="pill ${k.band[0]}">${k.s}</span></label>`).join(''):'<div class="empty small">No open leads. Add some in Leads.</div>'}</div>
+    <p class="small muted">Leads who reply, or ask not to be contacted, get no further messages. ${OUT_CAN_EMAIL()?'Emails due each day can be sent together from the Inbox.':'Each message shows up in the Inbox on its day, ready to send.'}</p>
+   </aside>
+  </div>`;
+}
+async function campAI(c){
+  if(UI.gen)return;const p=S.profile,L=LD();UI.gen='camp';rerender();let text='';
+  const prompt=`OUR COMPANY: ${p.company}, founded by ${p.name}. What we sell: ${L.in.sell||p.sector}. Who it's for in this campaign: ${c.who||L.in.buyers||'our ideal customers'}. Offer or hook: ${c.offer||'none'}.${L.out.icp?'\nOur ideal customer profile:\n'+L.out.icp.slice(0,1000):''}
+TASK: Write a ${c.steps.length}-step outreach sequence with these channels and days: ${c.steps.map((s,i)=>`step ${i+1} = ${OCH[s.ch]} on day ${s.day}`).join('; ')}.
+Use the placeholders {{first_name}}, {{company}}, {{my_name}} and {{my_company}} exactly as written. Emails under 110 words with a short subject; WhatsApp under 60 words; LinkedIn under 280 characters. Each step adds something new (a useful idea, a sample, a short case) and ends with one easy ask. The last step politely offers to stop. No hype, no fake urgency, no invented facts about us.
+FORMAT exactly, for each step:
+=== STEP n ===
+Subject: ... (emails only)
+(blank line)
+message body`;
+  try{
+    text=await OUT_AI(prompt,()=>{});
+    const parts=text.split(/^\s*=+\s*STEP\s*\d+\s*=+\s*$/im).map(t=>t.trim()).filter(Boolean);
+    if(parts.length>=c.steps.length)parts.slice(0,c.steps.length).forEach((t,i)=>{const m=/^Subject:\s*(.+)\n/i.exec(t);const s=c.steps[i];if(m){s.subject=m[1].trim();t=t.slice(m.index+m[0].length)}s.body=t.replace(/^\s*\n/,'').trim()});
+    else if(text.trim()){c.steps[0].body=text.trim();toast('The AI wrote one block. Split it into steps as you like.')}
+  }catch(err){if(err&&err.noAI){UI.outNoAI=true;toast(OUT_NOAI_MSG)}else toast((err&&err.msg)||'The AI couldn’t write that. Try again.')}
+  UI.gen=null;save();rerender();
+}
+function campLaunch(c){
+  const L=c.leads.map(id=>DL().find(d=>d.id===id)).filter(x=>x&&!x.dnc);let made=0,skip=0,busy=0;
+  if(!L.length){toast('Add at least one lead first.');return}
+  if(c.steps.some(s=>/\[[^\]]+\]/.test(s.body+' '+(s.subject||'')))){openLayer(`<h2>Fill in the [brackets] first</h2><p class="muted">Some messages still have placeholders in [brackets]. Replace them with real details so every lead gets a finished message.</p><button class="btn primary" data-act="close-layer">OK</button>`);return}
+  const running=new Set(CP().filter(k=>k.status==='running').flatMap(k=>k.leads));
+  L.forEach(x=>{if(running.has(x.id)){busy++;return}c.steps.forEach((s,i)=>{if((s.ch==='email'&&!x.email)||(s.ch==='whatsapp'&&!x.phone)){skip++;return}
+    MS().push({id:uid(),deal:x.id,dir:'out',ch:s.ch,status:'scheduled',sendAt:iso(addDays(TODAY,+s.day||0)),subject:s.ch==='email'?fillVars(s.subject,x):'',body:fillVars(s.body,x),camp:c.id,step:i});made++})});
+  c.status='running';c.launched=iso(TODAY);save();render();
+  toast(`Scheduled ${made} messages.${skip?` ${skip} skipped for missing contact details.`:''}${busy?` ${busy} ${busy===1?'lead was':'leads were'} already in another campaign.`:''}`);
+}
+
+/* ---------- lead capture form ---------- */
+function captureCard(){return CAPTURE_HTML()}
 
 /* ---------- unit economics ---------- */
 function ue(c){const cac=c.cust>0?c.spend/c.cust:null;const contrib=(c.aov||0)*(c.margin||0)/100;const ltv=contrib*Math.max(1,c.orders||1);
@@ -1533,6 +1800,12 @@ function onInput(e,live){
     if(el.dataset.f==='n'){r.n=el.value;save();if(!live)rerender();return}
     if(live)return;const P=PIPES[el.dataset.gp];r.amt=el.value===''?0:(P.unit==='lakh'?Math.round(+el.value*1e5):+el.value);save();rerender();return}
   if(el.dataset.ten!==undefined){if(live&&el.dataset.f==='n'){S.first10[+el.dataset.ten].n=el.value;save();return}S.first10[+el.dataset.ten][el.dataset.f]=el.value;save();rerender();return}
+  if(el.dataset.lq!==undefined){if(!live)return;UI.lq=el.value;rerender();return}
+  if(el.dataset.lsrc!==undefined){if(live)return;UI.lsrc=el.value;rerender();return}
+  if(el.dataset.lsort!==undefined){if(live)return;UI.lsort=el.value;rerender();return}
+  if(el.dataset.camp){const c=CP().find(k=>k.id===UI.camp);if(c){c[el.dataset.camp]=el.value;save()}return}
+  if(el.dataset.step!==undefined){const c=CP().find(k=>k.id===UI.camp);if(!c)return;const s=c.steps[+el.dataset.step];s[el.dataset.f]=el.dataset.f==='day'?Math.max(0,+el.value||0):el.value;save();if(!live&&el.dataset.f==='ch')rerender();return}
+  if(el.id==='tpl-pick'){if(live||!el.value)return;const t=TP().find(q=>q.id===el.value),c=UI.comp,x=DL().find(d=>d.id===c.deal);if(t&&x){c.type=t.ch;c.subject=fillVars(t.subject,x);c.body=fillVars(t.body,x)}rerender();return}
   if(UI.comp&&['comp-goal','comp-tone','comp-subj','comp-body','comp-when'].includes(el.id)){UI.comp[{'comp-goal':'goal','comp-tone':'tone','comp-subj':'subject','comp-body':'body','comp-when':'when'}[el.id]]=el.value;const x=DL().find(d=>d.id===UI.comp.deal);const g=document.getElementById('out-gmail');if(g&&x)g.href=gmailLink(x.email,UI.comp.subject,UI.comp.body);const w=document.getElementById('out-wa');if(w&&x&&x.phone)w.href=waLink(x.phone,UI.comp.body);return}
   if(el.id==='chase-msg'){const a=document.getElementById('chase-wa');if(a)a.href='https://wa.me/?text='+encodeURIComponent(el.value);return}
   if(el.id==='ask'){UI.draft=el.value;el.style.height='auto';el.style.height=Math.min(180,el.scrollHeight)+'px'}
@@ -1557,6 +1830,13 @@ document.addEventListener('submit',e=>{
     const n0=MS().length;S.msgs=MS().filter(m=>!(m.deal===x.id&&m.status==='scheduled'));const cut=n0-S.msgs.length;
     if(o==='interested'&&x.stage==='lead')x.stage='talk';if(o==='meeting'){if(['lead','talk'].includes(x.stage))x.stage='meet';x.step='Prepare for the meeting'}if(o==='no')x.stage='lost';x.next=iso(addDays(TODAY,o==='later'?30:2));
     UI.comp=null;save();closeLayer();render();toast(o==='no'?'Saved. Marked as lost.':`Reply saved${cut?`. ${cut} scheduled follow-up${cut===1?'':'s'} cancelled`:''}. Press “Write a reply with AI” to answer.`)}
+  if(k==='lead-full'){const o={};['n','person','role','email','phone','seg','city','step','src'].forEach(f2=>o[f2]=String(fd.get(f2)||'').trim());o.val=+fd.get('val')||0;if(!o.n)return;const id2=f.dataset.id;
+    if(o.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(o.email)){toast('That email address doesn’t look right.');return}
+    if(id2){const x=DL().find(d=>d.id===id2);const was=x.dnc;Object.assign(x,o);x.dnc=fd.get('dnc')==='on';if(x.dnc&&!was)S.msgs=MS().filter(m=>!(m.deal===x.id&&m.status==='scheduled'));toast('Saved')}
+    else{DL().push({id:uid(),...o,stage:'lead',next:iso(addDays(TODAY,2))});toast(`${o.n} added`)}
+    save();closeLayer();render();return}
+  if(k==='tpl'){const c=UI.comp,x=DL().find(d=>d.id===c.deal);const nm=String(fd.get('n')||'').trim();if(!nm)return;const gen=t=>{let r=String(t||'');const fn=(x.person||'').split(' ')[0];if(fn)r=r.split(fn).join('{{first_name}}');if(x.n)r=r.split(x.n).join('{{company}}');return r};
+    TP().push({id:uid(),name:nm,ch:c.type,subject:c.type==='email'?gen(c.subject):'',body:gen(c.body)});save();closeLayer();rerender();toast('Template saved');return}
   if(k==='lead'){const n=(fd.get('n')||'').trim();if(!n)return;const c=(fd.get('c')||'').trim();DL().push({id:uid(),n,val:+fd.get('v')||0,stage:'lead',step:c?'Contact: '+c:'Find the decision maker',next:iso(addDays(TODAY,2)),src:'Lead finder'});save();render();document.getElementById('nl-n')?.focus();toast(`${n} added to Customers`)}
   if(k==='deal'){const n=(fd.get('n')||'').trim();if(!n)return;DL().push({id:uid(),n,val:+fd.get('v')||0,stage:'lead',step:'',next:iso(addDays(TODAY,3)),src:fd.get('s')});save();render();document.getElementById('nd-n')?.focus();toast('Deal added with a follow-up in 3 days')}
   if(k==='gp'){const kk=f.dataset.k,P=PIPES[kk];const n=(fd.get('n')||'').trim();if(!n)return;rows(kk).push({id:uid(),n,s:P.stages[0],amt:0});save();rerender();document.getElementById('gp-new-'+kk)?.focus();toast('Added. Move it along as things progress.')}
@@ -1572,7 +1852,7 @@ document.addEventListener('click',async e=>{
   const act=b.dataset.act,id=b.dataset.id;
   if(act!=='menu'&&act!=='menu-mobile'&&UI.menu&&!b.closest('.menu'))UI.menu=false;
   switch(act){
-   case 'nav':{let v=b.dataset.v;if(GT.some(t=>t[0]===v)){UI.growTab=v;v='grow'}UI.view=v;UI.openTask=null;try{history.replaceState(null,'','#'+(v==='grow'?UI.growTab:v))}catch(_){}render();window.scrollTo(0,0);break}
+   case 'nav':{let v=b.dataset.v,h=v;if(GT.some(t=>t[0]===v)){UI.growTab=v;v='grow'}else if(MT.some(t=>t[0]===v)){UI.cashTab=v;v='cash'}else if(v==='grow')h=UI.growTab||'overview';UI.view=v;UI.openTask=null;UI.camp=null;try{history.replaceState(null,'','#'+h)}catch(_){}render();window.scrollTo(0,0);break}
    case 'menu':UI.menu=!UI.menu;render();break;
    case 'menu-mobile':openLayer(`<h2>${esc(S.profile.company)}</h2><div class="menu" style="position:static;box-shadow:none">${menuHTML().replace(/^<div class="menu" role="menu">|<\/div>$/g,'')}</div><button class="btn" data-act="close-layer">Close</button>`);break;
    case 'move':{const wk=thisWeek();const m=wk.moves.find(x=>x.id===id);m.done=!m.done;if(m.gk){const sk=m.gk.split(':')[1],st=(GOAL_STEPS[m.gk.split(':')[0]]||[]).find(x=>x.k===sk);if(st&&!st.auto){if(st.reg)S.regs[st.reg]=m.done?'done':(S.regs[st.reg]==='done'?'':S.regs[st.reg]);else GD().checks[m.gk]=m.done}}if(m.done){markStreak();S.seenMovesHelp=true;const nx=wk.moves.find(x=>!x.done);UI.openMove=nx?nx.id:null}else UI.openMove=m.id;save();rerender();
@@ -1614,6 +1894,37 @@ document.addEventListener('click',async e=>{
    case 'out-cancel':{S.msgs=MS().filter(q=>q.id!==id);save();rerender();toast('Follow-up cancelled');break}
    case 'out-reply':{const x=DL().find(d=>d.id===UI.outDeal);if(x)openReplyLog(x);break}
    case 'out-answer':{const m=MS().find(q=>q.id===id);if(!m)break;const last=[...dealMsgs(m.deal)].reverse().find(q=>q.dir==='out'&&q.subject);UI.outDeal=m.deal;UI.comp={deal:m.deal,type:['email','whatsapp','linkedin'].includes(m.ch)?m.ch:'email',subject:last?(/^Re:/i.test(last.subject)?last.subject:'Re: '+last.subject):'',body:'',goal:'Answer what they asked and agree the next step',tone:'Warm',when:iso(addDays(TODAY,3))};rerender();document.getElementById('comp-body')?.scrollIntoView({behavior:'smooth',block:'center'});outWrite();break}
+   case 'lead-import':openImport();break;
+   case 'imp-go':{const r=UI.imp;if(!r||!r.items||!r.items.length)break;DL().push(...r.items);UI.imp=null;save();closeLayer();UI.view='grow';UI.growTab='leads';render();toast(`Imported ${r.items.length} ${r.items.length===1?'lead':'leads'}.`);break}
+   case 'lead-add':openLayer(leadForm());setTimeout(()=>document.getElementById('lf-n')?.focus(),50);break;
+   case 'lead-edit':{const x=DL().find(d=>d.id===id);if(x)openLayer(leadForm(x));break}
+   case 'lead-research':leadResearch(id);break;
+   case 'lead-dnc':{const x=DL().find(d=>d.id===id);if(!x)break;x.dnc=!x.dnc;if(x.dnc)S.msgs=MS().filter(m=>!(m.deal===x.id&&m.status==='scheduled'));save();rerender();toast(x.dnc?'Marked do not contact. Scheduled messages cancelled.':'They can be contacted again.');break}
+   case 'lf':UI.lf=b.dataset.v;rerender();break;
+   case 'sel':{const s=UI.sel=UI.sel||new Set();s.has(id)?s.delete(id):s.add(id);rerender();break}
+   case 'sel-all':{const s=UI.sel=UI.sel||new Set(),rows=leadRows();if(rows.every(r=>s.has(r.x.id)))rows.forEach(r=>s.delete(r.x.id));else rows.forEach(r=>s.add(r.x.id));rerender();break}
+   case 'bulk-clear':UI.sel=new Set();rerender();break;
+   case 'bulk-dnc':{const s=UI.sel||new Set();DL().forEach(x=>{if(s.has(x.id))x.dnc=true});S.msgs=MS().filter(m=>!(s.has(m.deal)&&m.status==='scheduled'));toast(`${s.size} marked do not contact.`);UI.sel=new Set();save();rerender();break}
+   case 'bulk-del':openLayer(`<h2>Delete ${(UI.sel||new Set()).size} leads?</h2><p class="muted">Their messages and history are deleted too. This can’t be undone.</p><div class="row"><button class="btn primary" style="background:var(--bad);border-color:var(--bad)" data-act="bulk-del-yes">Delete</button><button class="btn ghost" data-act="close-layer">Keep them</button></div>`);break;
+   case 'bulk-del-yes':{const s=UI.sel||new Set();S.deals=DL().filter(x=>!s.has(x.id));S.msgs=MS().filter(m=>!s.has(m.deal));CP().forEach(c=>{c.leads=c.leads.filter(i=>!s.has(i))});toast(`${s.size} deleted.`);UI.sel=new Set();save();closeLayer();rerender();break}
+   case 'bulk-camp':{const drafts=CP().filter(c=>c.status==='draft');openLayer(`<h2>Add ${(UI.sel||new Set()).size} leads to a campaign</h2><div class="list">${drafts.map(c=>`<div class="li"><div class="grow"><b>${esc(c.name)}</b><br><span class="small muted">${c.leads.length} leads · draft</span></div><button class="btn sm" data-act="bulk-camp-to" data-id="${c.id}">Add here</button></div>`).join('')}</div><div class="row"><button class="btn primary" data-act="camp-new">New campaign with these leads</button><button class="btn ghost" data-act="close-layer">Cancel</button></div>`);break}
+   case 'bulk-camp-to':{const c=CP().find(k=>k.id===id);if(!c)break;const s=UI.sel||new Set();s.forEach(i=>{const x=DL().find(d=>d.id===i);if(x&&!x.dnc&&!c.leads.includes(i))c.leads.push(i)});UI.sel=new Set();UI.camp=c.id;UI.view='grow';UI.growTab='campaigns';save();closeLayer();render();break}
+   case 'camp-new':{const c=newCamp();const s=UI.sel||new Set();if(s.size)c.leads=[...s].filter(i=>{const x=DL().find(d=>d.id===i);return x&&!x.dnc});UI.sel=new Set();CP().push(c);UI.camp=c.id;UI.view='grow';UI.growTab='campaigns';try{history.replaceState(null,'','#campaigns')}catch(_){}save();closeLayer();render();window.scrollTo(0,0);break}
+   case 'camp-open':UI.camp=id;UI.view='grow';UI.growTab='campaigns';try{history.replaceState(null,'','#campaigns')}catch(_){}render();window.scrollTo(0,0);break;
+   case 'camp-back':UI.camp=null;render();break;
+   case 'camp-del':{S.camps=CP().filter(c=>c.id!==id);UI.camp=null;save();render();toast('Campaign deleted');break}
+   case 'camp-launch':{const c=CP().find(k=>k.id===id);if(c)campLaunch(c);break}
+   case 'camp-stop':{const c=CP().find(k=>k.id===id);if(!c)break;const n0=MS().length;S.msgs=MS().filter(m=>!(m.camp===c.id&&m.status==='scheduled'));c.status='stopped';save();render();toast(`Stopped. ${n0-S.msgs.length} scheduled messages cancelled.`);break}
+   case 'camp-ai':{const c=CP().find(k=>k.id===id);if(c)campAI(c);break}
+   case 'camp-step-add':{const c=CP().find(k=>k.id===UI.camp);if(!c)break;const l=c.steps[c.steps.length-1];c.steps.push({day:(+l.day||0)+4,ch:'email',subject:l.subject?(/^Re:/i.test(l.subject)?l.subject:'Re: '+l.subject):'',body:''});save();rerender();break}
+   case 'camp-step-del':{const c=CP().find(k=>k.id===UI.camp);if(!c)break;c.steps.splice(+b.dataset.i,1);save();rerender();break}
+   case 'camp-pick':{const c=CP().find(k=>k.id===UI.camp);if(!c)break;const v=b.dataset.v;if(v==='none')c.leads=[];else DL().filter(x=>!x.dnc&&x.stage!=='won'&&x.stage!=='lost').forEach(x=>{if(c.leads.includes(x.id))return;if(v==='hot'&&leadScore(x).s>=60)c.leads.push(x.id);if(v==='new'&&dealStatus(x).k==='new')c.leads.push(x.id)});save();rerender();break}
+   case 'camp-lead':{const c=CP().find(k=>k.id===UI.camp);if(!c)break;c.leads=c.leads.includes(id)?c.leads.filter(i=>i!==id):c.leads.concat(id);save();rerender();break}
+   case 'tpl-save':{const c=UI.comp;if(!c||!c.body.trim()){toast('Write the message first.');break}openLayer(`<h2>Save as a template</h2><form class="stack" data-form="tpl"><div class="field"><label for="tp-n">Template name</label><input class="input" id="tp-n" name="n" required placeholder="e.g. First email to cafés"></div><p class="small muted">The lead’s name and business are swapped for {{first_name}} and {{company}}, so it works for anyone.</p><div class="row"><button class="btn primary">Save</button><button type="button" class="btn ghost" data-act="close-layer">Cancel</button></div></form>`);setTimeout(()=>document.getElementById('tp-n')?.focus(),50);break}
+   case 'cap-copy':{const t=document.getElementById('cap-link');try{await navigator.clipboard.writeText(t.value);toast('Link copied')}catch(_){t.select();toast('Selected. Press Ctrl+C or Cmd+C to copy.')}break}
+   case 'out-bulk':{const due=dueEmails();if(!due.length)break;if(S.sample){toast('This is the sample startup, so no email is sent.');break}b.disabled=true;let ok=0,fail=0,err='';
+     for(const m of due){const x=DL().find(d=>d.id===m.deal);b.textContent=`Sending ${ok+fail+1} of ${due.length}…`;try{await OUT_SEND_EMAIL(x,{subject:m.subject,body:m.body});Object.assign(m,{status:'sent',at:iso(TODAY),via:'app'});if(x.stage==='lead')x.stage='talk';ok++}catch(e){fail++;err=(e&&e.msg)||'';if(/24 hours/.test(err))break}}
+     save();render();toast(`${ok} sent${fail?`, ${fail} not sent${err?': '+err:''}`:''}.`);break}
    case 'chase':openChase(id);break;
    case 'chase-tone':openChase(UI.chase.id,b.dataset.v);break;
    case 'chase-copy':{const t=document.getElementById('chase-msg');try{await navigator.clipboard.writeText(t.value);toast('Copied. Paste it into WhatsApp or email.')}catch(_){t.focus();t.select();toast('Selected. Press Ctrl+C or Cmd+C to copy.')}break}
@@ -1757,15 +2068,15 @@ let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>
 
 /* ================= boot ================= */
 (async function boot(){
-  const h=(location.hash||'').slice(1);if(NAV.some(n=>n[0]===h))UI.view=h;else if(GT.some(t=>t[0]===h)){UI.view='grow';UI.growTab=h}
+  const h=(location.hash||'').slice(1);if(NAV.some(n=>n[0]===h))UI.view=h;else if(GT.some(t=>t[0]===h)){UI.view='grow';UI.growTab=h}else if(MT.some(t=>t[0]===h)){UI.view='cash';UI.cashTab=h}
   app.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;color:var(--muted)">Loading your plan…</div>';
   try{
     const r=await fetch('/api/state',{cache:'no-store'});
     if(r.status===401){location.href='/login';return}
     const j=await r.json();
-    serverVersion=j.version;S=j.state;GP.role=j.role;GP.user=j.user;GP.zoho=j.zoho;GP.email=j.email;
+    serverVersion=j.version;S=j.state;GP.role=j.role;GP.user=j.user;GP.zoho=j.zoho;GP.email=j.email;GP.companyId=j.companyId;
   }catch(e){app.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;text-align:center;padding:16px">Could not load your plan. Check your connection and refresh.</div>';return}
-  render();paintSync();
+  render();paintSync();pullInbound();
   const zq=new URLSearchParams(location.search).get('zoho');
   if(zq){const msg={connected:'Zoho Books connected and synced.',sync_failed:'Zoho Books connected, but the first sync failed. Try Sync now.',failed:'Could not connect Zoho Books. Try again.',denied:'Zoho Books was not connected.',owner_only:'Only the account owner can connect Zoho Books.',not_configured:'Zoho Books isn’t set up on this server yet.'}[zq];if(msg)toast(msg);try{history.replaceState(null,'',location.pathname+location.hash)}catch(_){}}
 })();

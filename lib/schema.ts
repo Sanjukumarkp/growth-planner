@@ -85,6 +85,19 @@ create table if not exists outreach_sends (
 );
 create index if not exists outreach_sends_company_day on outreach_sends (company_id, created_at);
 
+create table if not exists inbound_leads (
+  id bigserial primary key,
+  company_id uuid not null references companies(id) on delete cascade,
+  name text not null,
+  company text,
+  email text,
+  phone text,
+  message text,
+  imported boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists inbound_leads_company on inbound_leads (company_id, imported, created_at);
+
 create table if not exists reminder_log (
   company_id uuid not null references companies(id) on delete cascade,
   kind text not null,
