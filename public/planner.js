@@ -33,6 +33,7 @@ cash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2
 advisor:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>',
 compliance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg>',
 team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 010 6.4M18 14.8c1.8.8 3 2.6 3.5 5.2"/></svg>',
+grow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
 tick:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
 warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5L22 20H2z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>',
 arrow:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
@@ -46,7 +47,7 @@ let OB=null;           // onboarding in progress
 let serverVersion=0, syncMode='saved', REAL=null, saving=false, pendingSave=false;
 const GP=window.__GP__||{};
 
-function blank(){return{v:1,profile:null,sample:false,items:[],team:[],recv:[],pay:[],history:[],weeks:{},streak:[],
+function blank(){return{v:1,profile:null,sample:false,items:[],team:[],recv:[],pay:[],deals:[],channels:[],history:[],weeks:{},streak:[],
   launch:[],first10:[],ideaChecks:{},job:{salary:0,need:0,side:0},
   scen:{hire:{on:false,n:2,salary:60000,month:0},late:{on:false,days:60,share:25},drop:{on:false,pct:20}},
   be:{price:1000,varCost:600,fixed:0},compDone:{},regs:{},reminders:{monday:true,close:true,review:true,reviewDay:5},chat:[],updatedAt:0}}
@@ -151,13 +152,15 @@ const MODS=[
  {k:'cash13',n:'13-week cash forecast',s:'all',go:'cash'},
  {k:'be',n:'Break-even calculator',s:['early','growing','scaling'],go:'cash',later:'Opens with your first sales'},
  {k:'aging',n:'Who owes you, whom you owe',s:['early','growing','scaling'],go:'cash',later:'Opens with your first sales'},
+ {k:'fund',n:'Funding match',s:'all',go:'funding'},
+ {k:'leads',n:'AI lead finder',s:'all',go:'leads'},
  {k:'advisor',n:'AI advisor',s:'all',go:'advisor'},
  {k:'comp',n:'Compliance calendar',s:['early','growing','scaling'],go:'compliance',later:'Starts once you register for GST'},
  {k:'schemes',n:'Schemes & registrations',s:'all',go:'compliance'},
  {k:'team',n:'Team tasks',s:'all',go:'team'},
  {k:'okr',n:'OKRs & growth levers',s:['growing','scaling'],later:'Opens at ₹50 L a year'},
- {k:'pipe',n:'B2B sales pipeline',s:['early','growing','scaling'],soon:true},
- {k:'unit',n:'Unit economics by channel',s:['growing','scaling'],soon:true,later:'Opens at ₹50 L a year'},
+ {k:'pipe',n:'Sales pipeline & GeM',s:['early','growing','scaling'],go:'sales'},
+ {k:'unit',n:'Unit economics by channel',s:['early','growing','scaling'],go:'unit',later:'Opens with your first sales'},
  {k:'docs',n:'Board pack & bank CMA report',s:['growing','scaling'],soon:true,later:'Opens at ₹50 L a year'},
  {k:'round',n:'Funding round modelling',s:['scaling'],later:'Opens at ₹10 Cr a year or when you raise',goalOpen:'raise'},
  {k:'cap',n:'Cap table',s:['scaling'],later:'Opens when you take outside money',goalOpen:'raise'}
@@ -227,6 +230,23 @@ function sampleState(){
   st.history=ms.map((m,i)=>({m,rev:R[i],spend:SP[i],cash:C[i]}));
   st.be={price:650,varCost:390,fixed:650000};
   st.regs={udyam:'done',dpiit:'progress'};
+  st.recv[0].chases=[{at:d(-20),tone:'friendly'},{at:d(-9),tone:'firm'}];
+  st.deals=[
+   {id:uid(),n:'Brewhouse Cafés (12 outlets)',val:480000,stage:'prop',step:'Follow up on the revised price sheet',next:d(-2),src:'Referral'},
+   {id:uid(),n:'Infosphere Tech: Diwali gifting',val:650000,stage:'meet',step:'Send the sample box',next:d(4),src:'Inbound'},
+   {id:uid(),n:'FreshBasket stores (modern trade)',val:900000,stage:'talk',step:'Call the category manager',next:d(1),src:'Cold outreach'},
+   {id:uid(),n:'Hotel Saffron group',val:360000,stage:'lead',step:'Find the purchase head on LinkedIn',next:'',src:'Event'},
+   {id:uid(),n:'Railway catering canteens (GeM bid)',val:520000,stage:'lead',step:'Read the bid document',next:d(6),src:'GeM / government'},
+   {id:uid(),n:'UrbanPantry (B2B)',val:740000,stage:'won',step:'',next:'',src:'Referral'},
+   {id:uid(),n:'GreenLeaf Organics',val:220000,stage:'lost',step:'',next:'',src:'Cold outreach'}];
+  st.channels=[
+   {id:uid(),n:'Instagram ads',spend:180000,cust:300,aov:650,margin:40,orders:2.2},
+   {id:uid(),n:'Google search ads',spend:90000,cust:220,aov:700,margin:40,orders:2.5},
+   {id:uid(),n:'Amazon',spend:60000,cust:260,aov:600,margin:22,orders:1.6},
+   {id:uid(),n:'Influencer collabs',spend:120000,cust:110,aov:650,margin:40,orders:1.8},
+   {id:uid(),n:'WhatsApp & referrals',spend:8000,cust:140,aov:720,margin:45,orders:4}];
+  st.leads={in:{sell:'Turmeric latte mixes and spice blends',buyers:'Cafés, corporate gifting teams, modern trade stores',city:'Mumbai and Pune',size:'₹3–9 L a year per account',segment:'specialty cafés',channel:'WhatsApp',offer:'Free tasting kit for the team',goal:'20 café and gifting leads',budget:30000,weeks:2},out:{}};
+  st.fund={need:2500000,use:'Working capital and inventory',pack:{forecast:true,room:true},status:{invoice:'prep'}};
   const lastW=mondayOf(addDays(TODAY,-7)),w2=mondayOf(addDays(TODAY,-14)),w3=mondayOf(addDays(TODAY,-21));
   st.streak=[iso(w3),iso(w2),iso(lastW)];
   // mark the earliest past compliance item as done for realism
@@ -382,6 +402,9 @@ function genMoves(){
   const p=S.profile,f=fin(),c=[];
   if(p.stage!=='idea'){const ev=nextDue().filter(e=>e.date<=addDays(TODAY,8))[0];if(ev)c.push({t:`File ${ev.title} by ${fmtD(ev.date)}`,why:'Late fees and interest start the day after the due date.',tag:'Compliance',go:'compliance',pr:90});}
   const od=S.recv.filter(r=>!r.paid&&parseISO(r.due)<TODAY).sort((a,b)=>b.amt-a.amt)[0];
+  {const sd=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost'&&x.next&&parseISO(x.next)<TODAY).sort((a,b)=>(b.val||0)-(a.val||0))[0];if(sd)c.push({t:`Follow up with ${sd.n}`,why:`${sd.step?sd.step+'. ':''}It was due ${fmtD(parseISO(sd.next))}. A ${inr(sd.val||0)} deal goes cold fast.`,tag:'Sales',go:'sales',pr:78,how:['Open Customers and find this deal.','Message or call them today with the next step.','Set a new “By” date so This week reminds you again.']})}
+  {const lc=CH().map(x=>({x,u:ue(x)})).filter(r=>r.u.ratio!=null&&r.u.ratio<1&&r.x.spend>0).sort((a,b)=>b.x.spend-a.x.spend)[0];if(lc)c.push({t:`Fix or pause ${lc.x.n}`,why:`Each new customer costs ${inr(lc.u.cac)} and earns back only ${inr(lc.u.ltv)} in a year.`,tag:'Growth',go:'unit',pr:66,how:['Open Unit economics and check this channel’s numbers.','Cut its budget, raise prices, or improve repeat orders.','Move the budget to your best channel.']})}
+  {const op=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost').length;if(p.stage!=='idea'&&op<5)c.push({t:'Find 10 new prospects',why:`Only ${op} open ${op===1?'deal':'deals'} in your pipeline. The lead finder shows who to target and where to find them.`,tag:'Sales',go:'leads',pr:57,how:['Open the lead finder and build your ideal customer profile.','Use the ready-made searches to find 10 businesses.','Add each one as a lead so This week reminds you to follow up.']})}
   if(od)c.push({t:`Chase ${inr(od.amt)} from ${od.who}`,why:`${days(parseISO(od.due),TODAY)} days overdue. This is money you have already earned.`,tag:'Cash',go:'cash',pr:85});
   if(f.runway<9&&p.stage!=='idea')c.push({t:`Find ${inr(f.cutFor12)} a month to cut or bring in`,why:`That takes you from ${runwayTxt(f.runway)} to 12 months of runway.`,tag:'Cash',go:'cash',pr:80});
   if(needsClose()){const lm=new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1);c.push({t:`Close the books for ${MONL[lm.getMonth()]}`,why:'Three numbers: sales, spend and bank balance. Takes two minutes.',tag:'Numbers',act:'close',pr:75})}
@@ -392,6 +415,7 @@ function genMoves(){
     c.push({t:'Put up a one-page site with a waitlist',why:'Measure how many strangers leave an email. It beats asking friends.',tag:'Idea',go:'plan',pr:64});
     c.push({t:'Ask 3 people to pre-pay or sign a letter of intent',why:'A payment is the clearest sign the idea works.',tag:'Sales',go:'plan',pr:62});
   }
+  if(p.goal==='raise'||(p.stage!=='idea'&&f.runway<6)){const fsc=fundScore().score;c.push({t:'See which funding fits you',why:`Your funding readiness is ${fsc}/100. The Funding page ranks grants, loans and investors for ${p.company}.`,tag:'Funding',go:'funding',pr:p.goal==='raise'?61:58,how:['Open Funding and check your readiness score.','Fix the first item it lists.','Look at the options marked “Strong fit” and set their status.']})}
   const gs=nextStep();
   if(gs)c.push({t:gs.t,why:`Next step towards your goal: ${GOALS[p.goal]||'growth'}.`,tag:'Goal',go:'plan',gk:p.goal+':'+gs.k,how:gs.how,pr:p.stage==='idea'&&p.goal!=='first10'?60:72});
   c.push({t:'Ask the advisor one question about your numbers',why:'For example: “Why is cash falling?”',tag:'Advisor',go:'advisor',pr:30});
@@ -402,7 +426,7 @@ function thisWeek(){const k=weekKey();if(!S.weeks[k]){S.weeks[k]={moves:genMoves
 
 /* ================= render: shell ================= */
 const app=document.getElementById('app');
-const NAV=[['week','This week'],['cash','Cash'],['advisor','Advisor'],['plan','Plan'],['compliance','Compliance'],['team','Team']];
+const NAV=[['week','This week'],['cash','Cash'],['grow','Grow'],['advisor','Advisor'],['plan','Plan'],['compliance','Compliance'],['team','Team']];
 
 function render(){
   if(OB){app.innerHTML=renderOB();afterOB();return}
@@ -411,7 +435,7 @@ function render(){
   const overdueTasks=S.items.filter(i=>i.status!=='done'&&parseISO(i.due)<TODAY).length;
   const compHot=p.stage==='idea'?0:overdueComp().length;
   const badges={team:overdueTasks,compliance:compHot};
-  const views={week:vWeek,cash:vCash,advisor:vAdvisor,plan:vPlan,compliance:vComp,team:vTeam};
+  const views={week:vWeek,cash:vCash,grow:vGrow,advisor:vAdvisor,plan:vPlan,compliance:vComp,team:vTeam};
   app.innerHTML=`<div class="shell">
   <aside class="rail">
     <div class="brand">${ICON.logo}<span>Growth Planner</span></div>
@@ -493,7 +517,7 @@ function vWeek(){
     <section class="card">
       <div class="card-head"><h3>${p.stage==='idea'?'Customer follow-ups':'Follow-ups due'}</h3><span class="pill">${p.stage==='idea'?S.first10.filter(c=>c.n&&c.s!=='Paid').length:follow.length}</span></div>
       ${p.stage==='idea'?(S.first10.filter(c=>c.n&&c.s!=='Paid').length?`<div class="list">${S.first10.filter(c=>c.n&&c.s!=='Paid').slice(0,4).map(c=>`<div class="li"><div class="grow"><div class="t">${esc(c.n)}</div><div class="small muted">Status: ${esc(c.s)}. Move them one step this week.</div></div></div>`).join('')}</div>`:`${emptyState('accent',ICON.team,'Start your first-10 list','Add the people you want as your first customers. They show up here to follow up.',`<button class="btn sm primary" data-act="nav" data-v="plan">Open Plan ${ICON.arrow}</button>`)}`)
-      :(follow.length?`<div class="list">${follow.slice(0,4).map(r=>{const dd=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}${r.source==='zoho'?' <span class="pill" style="font-size:10px;padding:1px 7px">Zoho</span>':''}</div><div class="small" style="color:${dd>0?'var(--bad)':'var(--muted)'}">${inr(r.amt)} · ${dd>0?dd+' days overdue':dd===0?'due today':'due '+fmtD(parseISO(r.due))}</div></div><button class="btn sm" data-act="paid" data-k="recv" data-id="${r.id}">Got paid</button></div>`}).join('')}</div>`:`${emptyState('pop',ICON.cash,'No invoices due','Nothing to chase this week. Add invoices in Cash to track them.',`<button class="btn sm" data-act="nav" data-v="cash">Open Cash</button>`)}`)}
+      :(follow.length?`<div class="list">${follow.slice(0,4).map(r=>{const dd=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}${r.source==='zoho'?' <span class="pill" style="font-size:10px;padding:1px 7px">Zoho</span>':''}</div><div class="small" style="color:${dd>0?'var(--bad)':'var(--muted)'}">${inr(r.amt)} · ${dd>0?dd+' days overdue':dd===0?'due today':'due '+fmtD(parseISO(r.due))}</div></div>${dd>0?`<button class="btn sm ghost" data-act="chase" data-id="${r.id}">Chase</button>`:''}<button class="btn sm" data-act="paid" data-k="recv" data-id="${r.id}">Got paid</button></div>`}).join('')}</div>`:`${emptyState('pop',ICON.cash,'No invoices due','Nothing to chase this week. Add invoices in Cash to track them.',`<button class="btn sm" data-act="nav" data-v="cash">Open Cash</button>`)}`)}
     </section>
     <section class="card">
       <div class="card-head"><h3>Coming up</h3></div>
@@ -512,7 +536,7 @@ function vWeek(){
 }
 function emptyState(tone,icon,title,sub,btn=''){return `<div class="es"><div class="es-ic ${tone}">${icon}</div><b>${title}</b><span>${sub}</span>${btn}</div>`}
 /* ---------- guided weekly moves ---------- */
-const GO_LABEL={plan:'Open goal plan',cash:'Open Cash',compliance:'Open Compliance',team:'Open Team',advisor:'Open Advisor',week:'Open'};
+const GO_LABEL={grow:'Open Grow',leads:'Open lead finder',sales:'Open Customers',unit:'Open unit economics',funding:'Open Funding',plan:'Open goal plan',cash:'Open Cash',compliance:'Open Compliance',team:'Open Team',advisor:'Open Advisor',week:'Open'};
 function howFor(m){
   if(m.how&&m.how.length)return m.how;
   const t=(m.t||'').toLowerCase();
@@ -653,7 +677,7 @@ function agingCard(k,title,sub){
   return `<section class="card"><div class="card-head"><div><h2>${title}</h2><p class="small muted">${sub}</p></div><span class="stat" style="text-align:right"><span class="v num">${inr(tot)}</span></span></div>
    <div class="aging">${sums.map((s,i)=>s?`<i style="width:${s/tot*100}%;background:${B[i][1]}" title="${B[i][0]}: ${inr(s)}"></i>`:'').join('')}</div>
    <div class="aging-key">${B.map((b,i)=>`<span><i style="background:${b[1]}"></i>${b[0]} <b class="num">${inr(sums[i])}</b></span>`).join('')}</div>
-   <div class="list" style="margin-top:10px">${rows.length?rows.sort((a,b)=>parseISO(a.due)-parseISO(b.due)).map(r=>{const d=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}${r.source==='zoho'?' <span class="pill" style="font-size:10px;padding:1px 7px">Zoho</span>':''}</div><div class="small" style="color:${d>0?(d>60?'var(--bad)':'var(--warn)'):'var(--muted)'}">${d>0?d+' days overdue':d===0?'Due today':'Due '+fmtD(parseISO(r.due))}</div></div><b class="num">${inr(r.amt)}</b><button class="btn sm ghost" data-act="paid" data-k="${k}" data-id="${r.id}">${k==='recv'?'Paid':'Done'}</button></div>`}).join(''):`<div class="empty">Nothing here yet.</div>`}</div>
+   <div class="list" style="margin-top:10px">${rows.length?rows.sort((a,b)=>parseISO(a.due)-parseISO(b.due)).map(r=>{const d=days(parseISO(r.due),TODAY);return `<div class="li"><div class="grow"><div class="t">${esc(r.who)}${r.source==='zoho'?' <span class="pill" style="font-size:10px;padding:1px 7px">Zoho</span>':''}</div><div class="small" style="color:${d>0?(d>60?'var(--bad)':'var(--warn)'):'var(--muted)'}">${d>0?d+' days overdue':d===0?'Due today':'Due '+fmtD(parseISO(r.due))}${r.chases&&r.chases.length?` · reminded ${r.chases.length}x`:''}</div></div><b class="num">${inr(r.amt)}</b>${k==='recv'&&d>0?`<button class="btn sm" data-act="chase" data-id="${r.id}">Chase</button>`:''}<button class="btn sm ghost" data-act="paid" data-k="${k}" data-id="${r.id}">${k==='recv'?'Paid':'Done'}</button></div>`}).join(''):`<div class="empty">Nothing here yet.</div>`}</div>
    <form class="addrow" data-form="${k}"><input class="input" id="${k}-who" name="who" placeholder="${k==='recv'?'Customer':'Supplier'}" required aria-label="Name"><div class="money"><span class="pre">₹</span><input class="input num" id="${k}-amt" name="amt" type="number" placeholder="0" required aria-label="Amount"></div><input class="input" id="${k}-due" name="due" type="date" value="${iso(addDays(TODAY,15))}" aria-label="Due date"><button class="btn primary">Add</button></form>
   </section>`;
 }
@@ -771,13 +795,16 @@ function ctxText(){
   {const m=goalMetric(),nx=nextStep();L.push(`Goal progress: ${m.big.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()} ${m.label}. Steps done: ${goalSteps().filter(stepDone).map(x=>x.t).join('; ')||'none'}. Next step: ${nx?nx.t:'all done'}.`);
    const pk={grow:'Channel tests',raise:'Investor pipeline',team:'Hiring pipeline'}[p.goal];if(pk&&rows(p.goal).length)L.push(pk+': '+rows(p.goal).map(r=>`${r.n} (${r.s}${r.amt?', '+inr(r.amt):''})`).join('; '))}
   L.push('Open initiatives: '+S.items.filter(i=>i.status!=='done').map(i=>`${i.title} (owner ${member(i.owner).name}, due ${fmtD(parseISO(i.due))}${parseISO(i.due)<TODAY?', OVERDUE':''})`).join('; '));
+  {const st=pipeStats();if(DL().length)L.push(`Sales pipeline: ${inr(st.val)} open across ${st.open.length} deals, ${inr(st.wtd)} weighted. Deals needing follow-up: ${st.stale.map(x=>x.n).join('; ')||'none'}.`)}
+  if(CH().length)L.push('Unit economics by channel: '+CH().map(c=>{const u=ue(c);return `${c.n}: spend ${inr(c.spend)}/mo, ${c.cust} new customers, cost per customer ${u.cac==null?'n/a':inr(u.cac)}, 1-yr value ${inr(u.ltv)}`}).join('; ')+'.');
+  {const fs=fundScore(),F=FD();L.push(`Funding readiness: ${fs.score}/100. Missing: ${fs.rows.filter(r=>!r.got).map(r=>r.t).join('; ')||'none'}. Investor pack ready: ${PACK.filter(x=>F.pack[x.k]).map(x=>x.n).join(', ')||'nothing yet'}.${F.need?' Wants to raise '+inr(F.need)+(F.use?' for '+F.use:'')+'.':''} Best-fit funding: ${fundOptions().filter(o=>o.fit===3).map(o=>o.n).join(', ')||'none yet'}.`)}
   return L.join('\n');
 }
 const ADV_SYS=`You are the advisor inside Growth Planner, helping a first-time Indian startup founder who has no CFO or consultant. Answer from THEIR numbers below. Use ₹ with lakh (L) and crore (Cr). Lead with the answer in one or two sentences, then give 2–4 specific reasons or steps that cite their figures. Keep it under 200 words unless they ask you to draft something (investor update, SOP, email, pitch feedback). For tax, legal or filing specifics, say to confirm with their CA. If the data cannot answer the question, say exactly which number you would need. Plain text only: short paragraphs and "- " bullets, **bold** allowed, no headings, no tables.`;
 function vAdvisor(){
   const p=S.profile;const isIdea=p.stage==='idea';
   let Q=isIdea?[['Launch','Is my idea ready to launch?'],['Customers','How should I find my first 10 customers?'],['Career','When should I quit my job?'],['Money','What should I spend my savings on first?'],['Draft','Write a script for customer interviews'],['Pitch','Critique my pitch: ']]
-    :[['Pricing','Should I raise prices?'],['Cash','Why is cash falling?'],['Draft','Draft my monthly investor update'],['Costs','Which costs should I cut first?'],['Process','Write an SOP for closing the books each month'],['Pitch','Critique my pitch: ']];
+    :[['Pricing','Should I raise prices?'],['Cash','Why is cash falling?'],['Draft','Draft my monthly investor update'],['Costs','Which costs should I cut first?'],['Funding','Which funding option fits us best, and why?'],['Pitch','Critique my pitch: ']];
   const GQ={first10:['Goal','How do I get my first 10 paying customers?'],breakeven:['Goal','What is the fastest way for me to reach break-even?'],grow:['Goal','Which growth channel should I test first?'],raise:['Goal','Am I ready to raise, and how much should I ask for?'],team:['Goal','Can I afford my next hire, and who should it be?'],compliant:['Goal','What registrations and filings am I missing?']}[p.goal];
   if(GQ&&!Q.some(q=>q[1]===GQ[1]))Q.unshift(GQ);
   const avail=UI.sampleOk!==false;const f=fin();
@@ -854,6 +881,337 @@ function vComp(){
    <div class="card-head"><div><h2>Registrations & schemes</h2><p class="small muted" style="margin-top:4px">Track where you are with each. The tag shows which ones fit a company at your stage.</p></div></div>
    <div class="schemes">${SCHEMES.map(s=>`<div class="scheme"><div class="spread"><h3>${s.n}</h3>${s.fit(p)?'<span class="pill good">Fits you</span>':''}</div><p>${s.d}</p><div class="foot">${s.url?`<a href="${s.url}" target="_blank" rel="noopener">Official site ↗</a>`:'<span></span>'}<select id="reg-${s.k}" data-bind="regs.${s.k}" aria-label="Status for ${esc(s.n)}">${[['','Not started'],['progress','In progress'],['done','Done']].map(([v,l])=>`<option value="${v}" ${(S.regs[s.k]||'')===v?'selected':''}>${l}</option>`).join('')}</select></div></div>`).join('')}</div>
   </section>`;
+}
+
+/* ================= grow: customers, unit economics, funding ================= */
+const GT=[['leads','Find leads'],['sales','Customers'],['unit','Unit economics'],['funding','Funding']];
+function vGrow(){const t=UI.growTab||'leads';
+  return `<div class="subnav" role="tablist" aria-label="Grow">${GT.map(([k,n])=>`<button role="tab" data-act="nav" data-v="${k}" aria-selected="${t===k}">${n}</button>`).join('')}</div>`+({leads:vLeads,sales:vSales,unit:vUnit,funding:vFund}[t]||vLeads)()}
+function DL(){return S.deals=S.deals||[]}
+function CH(){return S.channels=S.channels||[]}
+
+/* ---------- customers: sales pipeline ---------- */
+const PSTAGE=[['lead','Lead',.1],['talk','Talking',.25],['meet','Demo or meeting',.4],['prop','Proposal sent',.6],['won','Won',1],['lost','Lost',0]];
+const PST=Object.fromEntries(PSTAGE.map(s=>[s[0],s]));
+function pipeStats(){const d=DL(),open=d.filter(x=>x.stage!=='won'&&x.stage!=='lost');
+  const val=open.reduce((a,x)=>a+(x.val||0),0),wtd=open.reduce((a,x)=>a+(x.val||0)*PST[x.stage][2],0);
+  const won=d.filter(x=>x.stage==='won'),lost=d.filter(x=>x.stage==='lost');
+  const stale=open.filter(x=>!x.next||parseISO(x.next)<TODAY);
+  return{open,val,wtd,won,lost,stale,rate:won.length+lost.length?won.length/(won.length+lost.length):null}}
+function dealCard(x){const nd=x.next?parseISO(x.next):null,late=!nd||nd<TODAY;
+  return `<div class="deal"><div class="spread" style="flex-wrap:nowrap;align-items:flex-start"><input class="dn" id="dn-${x.id}" data-arr="deals" data-id="${x.id}" data-f="n" value="${esc(x.n)}" aria-label="Customer"><button class="x" data-act="del" data-k="deals" data-id="${x.id}" aria-label="Remove ${esc(x.n)}">×</button></div>
+   <div class="row" style="gap:6px"><div class="money" style="flex:1;min-width:120px"><span class="pre">₹</span><input class="input num" type="number" step="any" id="dv-${x.id}" data-arr="deals" data-id="${x.id}" data-f="val" data-type="num" value="${x.val||''}" placeholder="Deal value" aria-label="Deal value"></div>
+    <select class="input" style="flex:1;min-width:120px" id="ds-${x.id}" data-arr="deals" data-id="${x.id}" data-f="stage" aria-label="Stage">${PSTAGE.map(s=>`<option value="${s[0]}" ${x.stage===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select></div>
+   <input class="input" id="dst-${x.id}" data-arr="deals" data-id="${x.id}" data-f="step" value="${esc(x.step||'')}" placeholder="Next step, e.g. Send the price sheet" aria-label="Next step">
+   <div class="row" style="gap:6px;justify-content:space-between"><label class="small muted" for="dd-${x.id}">By</label><input class="input" style="flex:1" type="date" id="dd-${x.id}" data-arr="deals" data-id="${x.id}" data-f="next" value="${x.next||''}" aria-label="Next step date">${late?`<span class="pill ${nd?'bad':'warn'}">${nd?days(nd,TODAY)+'d late':'No date'}</span>`:''}</div></div>`}
+function vSales(){
+  const p=S.profile,st=pipeStats(),d=DL();
+  const cols=PSTAGE.slice(0,4);
+  return `<header class="pagehead"><div><div class="eyebrow">Customers · ${esc(p.company)}</div><h1 style="margin-top:8px">Never lose a deal to a missed follow-up.</h1><p class="lede">Every business customer you’re talking to, the next step with each, and the sales you can count on this quarter.</p></div></header>
+  <div class="tiles4">
+   <div class="tile"><div class="k"><i></i>Open deals</div><div class="v">${inr(st.val)}</div><div class="small muted">${st.open.length} ${st.open.length===1?'deal':'deals'}</div></div>
+   <div class="tile"><div class="k"><i style="background:var(--good)"></i>Likely to close</div><div class="v">${inr(st.wtd)}</div><div class="small muted">Weighted by stage</div></div>
+   <div class="tile"><div class="k"><i style="background:var(--pop)"></i>Win rate</div><div class="v">${st.rate==null?'—':Math.round(st.rate*100)+'%'}</div><div class="small muted">${st.won.length} won · ${st.lost.length} lost</div></div>
+   <div class="tile ${st.stale.length?'hot':''}"><div class="k"><i style="background:var(--bad)"></i>Need a follow-up</div><div class="v">${st.stale.length}</div><div class="small muted">No date, or the date has passed</div></div>
+  </div>
+  <section class="card">
+   <form class="addrow deal-add" data-form="deal"><input class="input" id="nd-n" name="n" placeholder="Customer, e.g. Brewhouse Cafés (12 outlets)" required aria-label="Customer"><div class="money"><span class="pre">₹</span><input class="input num" id="nd-v" name="v" type="number" step="any" placeholder="Value" aria-label="Deal value"></div><select class="input" id="nd-s" name="s" aria-label="Where it came from">${['Referral','Inbound','Cold outreach','Event','Marketplace','GeM / government'].map(o=>`<option>${o}</option>`).join('')}</select><button class="btn primary">Add deal</button></form>
+  </section>
+  ${d.length?`<div class="pboard">${cols.map(([k,n,pr])=>{const L=d.filter(x=>x.stage===k);return `<div class="col"><div class="col-h"><span>${n}</span><span class="pill num">${L.length} · ${inr(L.reduce((a,x)=>a+(x.val||0),0))}</span></div>${L.map(dealCard).join('')||'<div class="empty" style="font-size:13px">No deals here</div>'}</div>`}).join('')}</div>
+   ${st.won.length||st.lost.length?`<details class="card closed"><summary><b>Closed deals</b> <span class="muted small">${st.won.length} won (${inr(st.won.reduce((a,x)=>a+(x.val||0),0))}) · ${st.lost.length} lost</span></summary><div class="pboard" style="margin-top:12px">${[['won','Won'],['lost','Lost']].map(([k,n])=>`<div class="col"><div class="col-h"><span>${n}</span></div>${d.filter(x=>x.stage===k).map(dealCard).join('')||'<div class="empty" style="font-size:13px">None</div>'}</div>`).join('')}</div></details>`:''}`
+   :`<section class="card"><div class="es"><div class="es-ic accent">${ICON.team}</div><b>Add the first customer you’re talking to</b><span>Shops, companies or institutions you want to sell to. Give each a next step and a date, and This week will remind you.</span></div></section>`}
+  <section class="card gov">
+   <div class="card-head"><div><div class="eyebrow">New channel</div><h2 style="margin-top:4px">Sell to the government on GeM</h2></div><select class="input" style="width:auto" id="reg-gem" data-bind="regs.gem" aria-label="GeM status">${[['','Not started'],['progress','Registering'],['done','Selling on GeM']].map(([v,l])=>`<option value="${v}" ${(S.regs.gem||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+   <p class="muted">Government buyers purchase through the Government e-Marketplace (GeM). DPIIT-recognised startups don’t need prior experience, prior turnover or an earnest money deposit to bid, so a young company can win government orders. Startups had fulfilled orders worth ₹35,950 Cr on GeM by March 2025.</p>
+   <ol class="govsteps">
+    <li class="${S.regs.dpiit==='done'?'ok':''}"><b>Get DPIIT recognition</b><span>${S.regs.dpiit==='done'?'Done.':'This unlocks the startup exemptions.'}</span></li>
+    <li class="${S.regs.gem?'ok':''}"><b>Register as a seller on GeM</b><span>PAN, Udyam, GST and bank details. Free.</span></li>
+    <li><b>List your products or services</b><span>Use the startup category and set clear prices.</span></li>
+    <li><b>Watch bids in your category</b><span>Add the ones you bid on here as deals, with “GeM / government” as the source.</span></li>
+   </ol>
+   <a class="btn sm" href="https://gem.gov.in" target="_blank" rel="noopener">Open GeM ↗</a>
+  </section>`;
+}
+
+/* ---------- AI lead finder ---------- */
+function LD(){S.leads=S.leads||{};const l=S.leads;l.in=l.in||{};l.out=l.out||{};return l}
+const LEAD_TASKS={
+ icp:{t:'Build my ideal customer profile',p:l=>`Write our ideal customer profile. Give: the 2–3 best customer segments, ranked; for each, who decides and who pays (job titles), the problem we solve for them, a realistic deal size, buying triggers that mean "now is a good time", and red flags that mean "not a fit". End with the one segment to focus on first and why.`},
+ src:{t:'Find where my prospects are',p:l=>`For our top segment, list 6–8 specific places in India to find prospects (for example LinkedIn searches with exact keywords and titles, Google Maps searches, IndiaMART or TradeIndia categories, GeM categories, industry associations, trade fairs, WhatsApp or Telegram communities, marketplaces). For each, say exactly what to search or where to go, and how many prospects a founder can realistically collect in an hour. End with a 1-week plan to collect 30 prospects.`},
+ msg:{t:'Write my outreach',p:l=>`Write outreach for ${l.in.target?'this prospect: '+l.in.target:'our top segment'} on ${l.in.channel||'WhatsApp'}${l.in.offer?', with this offer: '+l.in.offer:''}. Give: 1) a first message under 80 words that is personal, names their likely problem and asks one easy question; 2) a follow-up for day 3; 3) a last follow-up for day 7; 4) two replies to common objections ("too expensive", "we already have a supplier"). Use [Name] and [Company] as placeholders. Sign off as the founder. No hype words.`},
+ camp:{t:'Plan a campaign',p:l=>`Plan a ${l.in.weeks||2}-week campaign to get ${l.in.goal||'20 qualified leads'} with a budget of ${l.in.budget?'₹'+l.in.budget.toLocaleString('en-IN'):'very little money'}. Use our unit economics by channel: put money only into channels that earn back their cost, and say which to avoid. Give the channels with the budget split, the offer or hook, 3 content or ad ideas, a simple day-by-day schedule, and the numbers to track each week.`}
+};
+let leadAbort=null;
+async function leadRun(k){
+  if(UI.gen)return;
+  const L=LD(),T=LEAD_TASKS[k];
+  const prompt=`COMPANY DATA (today is ${fmtDW(TODAY)} ${TODAY.getFullYear()}):\n${ctxText()}\n\nLEAD INPUTS:\nWhat we sell: ${L.in.sell||S.profile.sector}\nWho buys today: ${L.in.buyers||'not given'}\nWhere: ${L.in.city||'India'}\nTypical deal size: ${L.in.size||'not given'}\n${L.out.icp&&k!=='icp'?'\nOUR IDEAL CUSTOMER PROFILE:\n'+L.out.icp+'\n':''}\nTASK: ${T.p(L)}`;
+  UI.gen=k;L.out[k]='';rerender();
+  leadAbort=new AbortController();let text='';
+  try{
+    const r=await fetch('/api/advisor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'leads',messages:[{role:'user',content:prompt}]}),signal:leadAbort.signal});
+    if(r.status===401){location.href='/login';return}
+    if(!r.ok){const j=await r.json().catch(()=>({}));if(r.status===503)UI.leadNoAI=true;throw {msg:j.error}}
+    const rd=r.body.getReader(),dec=new TextDecoder();
+    for(;;){const {done,value}=await rd.read();if(done)break;text+=dec.decode(value,{stream:true});const el=document.getElementById('ai-'+k);if(el)el.innerHTML=md(text)}
+    L.out[k]=text||'No answer came back. Try again.';
+  }catch(err){
+    if(UI.leadNoAI)L.out[k]='';
+    else L.out[k]=err&&err.name==='AbortError'?(text?text+'\n\n(Stopped.)':'(Stopped.)'):(err&&err.msg)||'Something went wrong. Try again.';
+  }
+  UI.gen=null;leadAbort=null;save();rerender();
+}
+function aiBox(k,empty){const L=LD(),T=LEAD_TASKS[k],busy=UI.gen===k,txt=L.out[k];
+  return `<div class="aibox">${busy?`<div class="aiout" id="ai-${k}" aria-live="polite"><span class="typing"><i></i><i></i><i></i></span></div>`:txt?`<div class="aiout" id="ai-${k}">${md(txt)}</div>`:`<div class="aiempty">${empty}</div>`}
+   <div class="row">${busy?`<button class="btn" data-act="lead-stop">Stop</button>`:`<button class="btn ${txt?'':'primary'}" data-act="lead-run" data-k="${k}" ${UI.gen?'disabled':''}>${ICON.advisor.replace('<svg','<svg width="16" height="16"')} ${txt?'Write it again':T.t}</button>`}${txt&&!busy?`<button class="btn ghost" data-act="lead-copy" data-k="${k}">Copy</button>`:''}</div></div>`}
+function searchLinks(){const L=LD(),q=(L.in.segment||'').trim(),c=(L.in.city||'').trim();if(!q)return '';const e=encodeURIComponent;
+  const ls=[['Google Maps',`https://www.google.com/maps/search/${e(q+(c?' in '+c:''))}`,'Shops, offices and outlets with phone numbers'],
+   ['LinkedIn people',`https://www.linkedin.com/search/results/people/?keywords=${e(q+(c?' '+c:''))}`,'Decision makers by title'],
+   ['LinkedIn companies',`https://www.linkedin.com/search/results/companies/?keywords=${e(q)}`,'Companies in the segment'],
+   ['IndiaMART',`https://dir.indiamart.com/search.mp?ss=${e(q)}`,'Suppliers and buyers in B2B categories'],
+   ['GeM',`https://gem.gov.in`,'Government buyers and open bids'],
+   ['Google',`https://www.google.com/search?q=${e(q+(c?' '+c:'')+' contact')}`,'Lists, directories and news']];
+  return `<div class="slinks">${ls.map(([n,u,d])=>`<a class="slink" href="${u}" target="_blank" rel="noopener"><b>${n} ↗</b><span>${d}</span></a>`).join('')}</div>`}
+function vLeads(){
+  const p=S.profile,L=LD(),st=pipeStats();
+  const fromFinder=DL().filter(x=>x.src==='Lead finder');
+  const lead=DL().filter(x=>x.stage==='lead'||x.stage==='talk');
+  return `<header class="pagehead"><div><div class="eyebrow">AI lead finder · ${esc(p.company)}</div><h1 style="margin-top:8px">Find your next customers.</h1><p class="lede">Work out who to sell to, where to find them and what to say, using ${esc(p.company)}’s own numbers. Every prospect you add goes straight into Customers.</p></div></header>
+  <ol class="lsteps"><li class="${L.out.icp?'ok':''}"><div><b>Who to target</b><span>Ideal customer profile</span></div></li><li class="${L.out.src||fromFinder.length?'ok':''}"><div><b>Where to find them</b><span>Searches and sources</span></div></li><li class="${L.out.msg?'ok':''}"><div><b>What to say</b><span>Messages and follow-ups</span></div></li><li class="${st.won.length?'ok':''}"><div><b>Win them</b><span>${st.open.length} open deals in Customers</span></div></li></ol>
+  ${UI.leadNoAI?`<div class="alert warn">${ICON.warn}<div>The AI isn’t switched on for this server yet. The search links and prospect list still work.</div></div>`:''}
+  <div class="grid g-2">
+   <section class="card stack">
+    <div><div class="eyebrow">Step 1</div><h2 style="margin-top:4px">Who should you sell to?</h2></div>
+    <div class="grid g-2" style="gap:10px">
+     <div class="field"><label for="ld-sell">What you sell</label><input class="input" id="ld-sell" data-bind="leads.in.sell" value="${esc(L.in.sell||'')}" placeholder="${esc(p.sector)}"></div>
+     <div class="field"><label for="ld-city">Where</label><input class="input" id="ld-city" data-bind="leads.in.city" value="${esc(L.in.city||'')}" placeholder="e.g. Pune, or all India"></div>
+     <div class="field" style="grid-column:1/-1"><label for="ld-buy">Who buys from you today</label><input class="input" id="ld-buy" data-bind="leads.in.buyers" value="${esc(L.in.buyers||'')}" placeholder="e.g. Cafés, HR teams for gifting"></div>
+     <div class="field" style="grid-column:1/-1"><label for="ld-size">Typical deal size</label><input class="input" id="ld-size" data-bind="leads.in.size" value="${esc(L.in.size||'')}" placeholder="e.g. ₹50,000 a year per outlet"></div>
+    </div>
+    ${aiBox('icp','The AI ranks your best customer segments, who decides, what they pay and when they’re ready to buy.')}
+   </section>
+   <section class="card stack">
+    <div><div class="eyebrow">Step 2</div><h2 style="margin-top:4px">Where are they?</h2></div>
+    <div class="field"><label for="ld-seg">Search for a type of customer</label><input class="input" id="ld-seg" data-live data-bind="leads.in.segment" value="${esc(L.in.segment||'')}" placeholder="e.g. specialty cafés, corporate HR head"></div>
+    ${searchLinks()||'<p class="small muted">Type a customer type to get ready-made searches on Google Maps, LinkedIn, IndiaMART and GeM.</p>'}
+    ${aiBox('src','The AI lists the exact places and searches to find this segment in India, and a one-week plan to collect 30 prospects.')}
+   </section>
+  </div>
+  <section class="card">
+   <div class="card-head"><div><div class="eyebrow">Step 3</div><h2 style="margin-top:4px">Add the prospects you find</h2><p class="small muted" style="margin-top:4px">Each one goes into Customers as a lead with a follow-up date, so This week reminds you.</p></div><span class="pill accent">${fromFinder.length} added from here</span></div>
+   <form class="lead-add" data-form="lead"><input class="input" id="nl-n" name="n" placeholder="Business name" required aria-label="Business name"><input class="input" id="nl-c" name="c" placeholder="Contact person and role" aria-label="Contact"><div class="money"><span class="pre">₹</span><input class="input num" id="nl-v" name="v" type="number" step="any" placeholder="Likely value" aria-label="Likely deal value"></div><button class="btn primary">Add lead</button></form>
+   ${lead.length?`<div class="list" style="margin-top:12px">${lead.slice(-6).reverse().map(x=>`<div class="li"><div class="grow"><div class="t">${esc(x.n)}</div><div class="small muted">${PST[x.stage][1]}${x.step?' · '+esc(x.step):''}</div></div><b class="num">${x.val?inr(x.val):''}</b><button class="btn sm ghost" data-act="lead-write" data-id="${x.id}">Write to them</button></div>`).join('')}</div><button class="btn sm ghost" style="padding-left:0;margin-top:6px" data-act="nav" data-v="sales">See all in Customers ${ICON.arrow}</button>`:''}
+  </section>
+  <div class="grid g-2">
+   <section class="card stack" id="outreach">
+    <div><div class="eyebrow">Step 4</div><h2 style="margin-top:4px">What to say</h2></div>
+    <div class="grid g-2" style="gap:10px">
+     <div class="field" style="grid-column:1/-1"><label for="ld-t">To</label><input class="input" id="ld-t" data-bind="leads.in.target" value="${esc(L.in.target||'')}" placeholder="A prospect or a segment, e.g. Brewhouse Cafés, 12 outlets"></div>
+     <div class="field"><label for="ld-ch">Channel</label><select class="input" id="ld-ch" data-bind="leads.in.channel">${['WhatsApp','Email','LinkedIn','Phone call script','Instagram DM'].map(o=>`<option ${(L.in.channel||'WhatsApp')===o?'selected':''}>${o}</option>`).join('')}</select></div>
+     <div class="field"><label for="ld-of">Offer (optional)</label><input class="input" id="ld-of" data-bind="leads.in.offer" value="${esc(L.in.offer||'')}" placeholder="e.g. Free tasting kit"></div>
+    </div>
+    ${aiBox('msg','A first message, two follow-ups and answers to common objections, in your voice.')}
+   </section>
+   <section class="card stack">
+    <div><div class="eyebrow">Campaign</div><h2 style="margin-top:4px">Plan a campaign</h2></div>
+    <div class="grid g-3" style="gap:10px">
+     <div class="field"><label for="ld-g">Goal</label><input class="input" id="ld-g" data-bind="leads.in.goal" value="${esc(L.in.goal||'')}" placeholder="20 qualified leads"></div>
+     <div class="field"><label for="ld-b">Budget</label><div class="money"><span class="pre">₹</span><input class="input num" type="number" step="any" min="0" id="ld-b" data-bind="leads.in.budget" data-type="num" value="${L.in.budget||''}" placeholder="25000"></div></div>
+     <div class="field"><label for="ld-w">Weeks</label><select class="input" id="ld-w" data-bind="leads.in.weeks" data-type="num">${[1,2,4].map(w=>`<option value="${w}" ${(L.in.weeks||2)==w?'selected':''}>${w}</option>`).join('')}</select></div>
+    </div>
+    ${aiBox('camp','Channels and budget split based on your unit economics, the hook, content ideas and a day-by-day schedule.')}
+   </section>
+  </div>
+  <p class="small muted">Message people who are likely to want what you sell, say who you are, and stop when someone asks you to. Get consent before adding people to WhatsApp or email lists.</p>`;
+}
+
+/* ---------- unit economics ---------- */
+function ue(c){const cac=c.cust>0?c.spend/c.cust:null;const contrib=(c.aov||0)*(c.margin||0)/100;const ltv=contrib*Math.max(1,c.orders||1);
+  const ratio=cac?ltv/cac:cac===0?Infinity:null;const pay=contrib>0&&cac!=null?cac/contrib:null;
+  const v=ratio==null?['','Add numbers']:ratio>=3?['good','Healthy']:ratio>=1?['warn','Thin']:['bad','Losing money'];
+  return{cac,contrib,ltv,ratio,pay,v}}
+function ueBlend(){const c=CH().filter(x=>x.cust>0);const sp=c.reduce((a,x)=>a+(x.spend||0),0),cu=c.reduce((a,x)=>a+x.cust,0);
+  const ltv=cu?c.reduce((a,x)=>a+ue(x).ltv*x.cust,0)/cu:0;return{spend:sp,cust:cu,cac:cu?sp/cu:null,ltv,ratio:cu&&sp?ltv/(sp/cu):null}}
+function vUnit(){
+  const p=S.profile,ch=CH(),b=ueBlend();
+  const rows=ch.map(c=>({c,u:ue(c)}));
+  const losing=rows.filter(r=>r.u.ratio!=null&&r.u.ratio<1&&r.c.spend>0);
+  const best=rows.filter(r=>r.u.ratio!=null&&isFinite(r.u.ratio)).sort((a,b)=>b.u.ratio-a.u.ratio)[0];
+  const free=rows.filter(r=>r.c.spend===0&&r.c.cust>0)[0];
+  const top=best||free;
+  const burnLose=losing.reduce((a,r)=>a+Math.max(0,(r.u.cac-r.u.ltv)*r.c.cust),0);
+  const mx=Math.max(1,...rows.map(r=>Math.max(r.u.cac||0,r.u.ltv||0)));
+  const fmtR=r=>r==null?'—':!isFinite(r)?'Free':r.toFixed(1)+'x';
+  return `<header class="pagehead"><div><div class="eyebrow">Unit economics · ${esc(p.company)}</div><h1 style="margin-top:8px">Does each new customer make you money?</h1><p class="lede">For every channel: what one new customer costs (CAC), what they earn you over a year (lifetime value), and whether to spend more or stop.</p></div></header>
+  <div class="tiles4">
+   <div class="tile"><div class="k"><i></i>Marketing spend / month</div><div class="v">${inr(b.spend)}</div></div>
+   <div class="tile"><div class="k"><i style="background:var(--pop)"></i>Cost per new customer</div><div class="v">${b.cac==null?'—':inr(b.cac)}</div><div class="small muted">Blended across channels</div></div>
+   <div class="tile"><div class="k"><i style="background:var(--good)"></i>Value per customer (1 yr)</div><div class="v">${b.cust?inr(b.ltv):'—'}</div><div class="small muted">Contribution, not sales</div></div>
+   <div class="tile ${b.ratio!=null&&b.ratio<1?'hot':''}"><div class="k"><i style="background:var(--accent)"></i>Value ÷ cost</div><div class="v">${fmtR(b.ratio)}</div><div class="small muted">3x or more is healthy</div></div>
+  </div>
+  ${losing.length?`<div class="alert bad">${ICON.warn}<div><b>${losing.length} ${losing.length===1?'channel loses':'channels lose'} money on every new customer${burnLose?`, about ${inr(burnLose)} a month`:''}:</b> ${losing.map(r=>esc(r.c.n)).join(', ')}. ${top?`Your best channel is <b>${esc(top.c.n)}</b>. Move budget there first, or fix price and margin on the others.`:''}</div></div>`:rows.length&&rows.every(r=>r.u.ratio!=null)?`<div class="alert good">${ICON.tick}<div><b>Every channel earns back what it costs.</b> Put more budget into the ones with the highest value ÷ cost.</div></div>`:''}
+  <section class="card">
+   <div class="card-head"><div><h2>Channels</h2><p class="small muted" style="margin-top:4px">Last month’s numbers for each place your customers come from. Margin is what’s left after product, packing, delivery and platform fees.</p></div><button class="btn" data-act="add-ch">Add channel</button></div>
+   ${rows.length?`<div class="tbl-wrap"><table class="uet"><thead><tr><th>Channel</th><th>Verdict</th><th>Cost per customer</th><th>Value (1 yr)</th><th>Value ÷ cost</th><th>Pays back after</th><th>Spend / mo</th><th>New customers</th><th>Avg order</th><th>Margin %</th><th>Orders / yr</th><th></th></tr></thead><tbody>
+    ${rows.map(({c,u})=>`<tr><td><input class="cin wide" id="ch-n-${c.id}" data-arr="channels" data-id="${c.id}" data-f="n" value="${esc(c.n)}" aria-label="Channel name"></td>
+     <td><span class="pill ${u.v[0]}">${u.v[1]}</span></td>
+     <td class="num">${u.cac==null?'—':inr(u.cac)}</td><td class="num">${inr(u.ltv)}</td><td class="num"><b style="color:var(--${u.v[0]||'muted'})">${fmtR(u.ratio)}</b></td><td class="num">${u.pay==null?'—':u.pay<=1?'1st order':Math.ceil(u.pay)+' orders'}</td>
+     ${[['spend','Spend per month'],['cust','New customers'],['aov','Average order'],['margin','Margin percent'],['orders','Orders per customer per year']].map(([f,lab])=>`<td><input class="cin num" type="number" step="any" min="0" id="ch-${f}-${c.id}" data-arr="channels" data-id="${c.id}" data-f="${f}" data-type="num" value="${c[f]??''}" aria-label="${lab} for ${esc(c.n)}"></td>`).join('')}
+     <td><button class="x" data-act="del" data-k="channels" data-id="${c.id}" aria-label="Remove ${esc(c.n)}">×</button></td></tr>`).join('')}
+   </tbody></table></div>
+   <div class="uebars">${rows.map(({c,u})=>`<div class="ueb"><div class="nm">${esc(c.n)}</div><div class="bars"><div class="bar"><i style="width:${(u.cac||0)/mx*100}%;background:var(--pop)"></i><span>Cost ${u.cac==null?'—':inr(u.cac)}</span></div><div class="bar"><i style="width:${u.ltv/mx*100}%;background:var(--${u.v[0]==='bad'?'bad':'good'})"></i><span>Value ${inr(u.ltv)}</span></div></div></div>`).join('')}</div>`
+   :`<div class="es"><div class="es-ic pop">${ICON.cash}</div><b>Add your first channel</b><span>Instagram ads, Google, Amazon, referrals, a sales person. Start with the one you spend the most on.</span><button class="btn primary" data-act="add-ch">Add a channel</button></div>`}
+   <p class="small muted" style="margin-top:12px">Value (1 yr) = average order × margin × orders a customer places in a year. A customer is worth acquiring when their value is about 3x what they cost.</p>
+  </section>`;
+}
+
+/* ---------- getting paid: reminder messages ---------- */
+function chaseMsg(r,tone){
+  const p=S.profile,d=Math.max(0,days(parseISO(r.due),TODAY)),due=fmtD(parseISO(r.due)),by=n=>fmtD(addDays(TODAY,n));
+  const me=(p.name||'').split(' ')[0]||'Team',co=p.company,ud=S.regs.udyam==='done';
+  if(tone==='friendly')return `Hi ${r.who} team, hope you’re doing well. A gentle reminder that our invoice for ${inr(r.amt)} was due on ${due}. Could you let me know when we can expect the payment? Happy to resend the invoice if that helps.\n\nThanks,\n${me}, ${co}`;
+  if(tone==='firm')return `Hi ${r.who} team, our invoice for ${inr(r.amt)} is now ${d} days overdue (due on ${due}). Please confirm the payment date by ${by(3)}. If something on the invoice needs fixing, tell me and I’ll correct it today.\n\nRegards,\n${me}, ${co}`;
+  return `Dear ${r.who} team,\n\nOur invoice for ${inr(r.amt)}, due on ${due}, is ${d} days overdue despite earlier reminders.${ud?` ${co} is a registered MSME (Udyam). Under the MSMED Act, payment is due within 45 days, and late amounts carry compound interest at three times the RBI bank rate.`:''} Please clear the payment by ${by(7)}.${ud?' If we don’t hear from you, we will file the dues on the MSME Samadhaan portal.':' After that we will need to pause further supplies.'}\n\nRegards,\n${me}\n${co}`;
+}
+function openChase(id,tone){
+  const r=S.recv.find(x=>x.id===id);if(!r)return;const d=days(parseISO(r.due),TODAY);
+  tone=tone||(d<=15?'friendly':d<=45?'firm':'final');UI.chase={id,tone};
+  const msg=chaseMsg(r,tone),ud=S.regs.udyam==='done';const ch=r.chases||[];
+  openLayer(`<div><div class="eyebrow">Get paid</div><h2 style="margin-top:4px">${esc(r.who)} · ${inr(r.amt)}</h2><p class="muted small" style="margin-top:4px">${d>0?d+' days overdue':'Not due yet'}${ch.length?` · Reminded ${ch.length} ${ch.length===1?'time':'times'}, last on ${fmtD(parseISO(ch[ch.length-1].at))}`:''}</p></div>
+   <div class="filters" role="group" aria-label="Tone">${[['friendly','Friendly reminder'],['firm','Firm follow-up'],['final','Final notice']].map(([k,n])=>`<button class="chip" data-act="chase-tone" data-v="${k}" aria-pressed="${tone===k}">${n}</button>`).join('')}</div>
+   <textarea class="input" id="chase-msg" rows="9">${esc(msg)}</textarea>
+   <div class="row"><button class="btn primary" data-act="chase-copy">Copy message</button><a class="btn" id="chase-wa" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Open in WhatsApp ↗</a><button class="btn ghost" data-act="chase-log" data-id="${r.id}">I sent it</button></div>
+   <div class="privacy">${ICON.compliance}<div>${ud?`<b style="color:var(--ink)">Your rights as a registered MSME.</b> Buyers must pay within the agreed time, and never later than 45 days. Late payments earn you compound interest at 3x the RBI bank rate, and you can file unpaid dues on the MSME Samadhaan portal. Buyers also lose their tax deduction for that cost if they pay a micro or small enterprise late (Section 43B(h)). Confirm the details with your CA.`:`<b style="color:var(--ink)">Register on Udyam.</b> It’s free, and once you are registered, buyers must pay you within 45 days or owe you interest. It protects invoices raised after you register.`}</div></div>
+   <button class="btn ghost" data-act="close-layer">Close</button>`);
+}
+
+/* ================= view: funding ================= */
+function FD(){S.fund=S.fund||{};const f=S.fund;f.pack=f.pack||{};f.status=f.status||{};return f}
+const PACK=[
+ {k:'memo',n:'One-page investor memo',d:'Problem, solution, traction, team, how much you are raising and what it is for.',pts:8,ask:'Write a one-page investor memo for us, using our numbers.'},
+ {k:'deck',n:'10-slide pitch deck',d:'Problem, solution, market, product, traction, business model, competition, team, financials, the ask.',pts:8,ask:'Give me a slide-by-slide outline for a 10-slide pitch deck, using our numbers.'},
+ {k:'forecast',n:'12-month financial forecast',d:'Monthly sales, spend and cash, with the assumptions written down. Start from your Cash page.',pts:6,go:'cash'},
+ {k:'cap',n:'Cap table',d:'Who owns how much today, including any ESOP pool, and what changes after this round.',pts:6},
+ {k:'room',n:'Data room',d:'One shared folder: incorporation certificate, PAN, GST, last 12 months of bank statements, ITR, key contracts, founders’ agreement.',pts:8},
+ {k:'update',n:'Monthly investor update sent',d:'A short email each month with numbers, wins and asks. Investors trust founders who report.',pts:4,ask:'Draft my monthly investor update'}
+];
+function fundScore(){
+  const p=S.profile,f=fin(),F=FD(),idea=p.stage==='idea';const rows=[];
+  const add=(t,pts,got,how,act,v)=>rows.push({t,pts,got:!!got,how,act,v});
+  if(idea){
+    const ck=Object.values(S.ideaChecks).filter(Boolean).length,paid=S.first10.filter(c=>c.n&&c.s==='Paid').length,named=S.first10.filter(c=>c.n).length,ir=ideaRunway();
+    add('Idea tested: 4 of 6 checks done',15,ck>=4,'Tick the checks on your Plan page as they come true.','nav','plan');
+    add('At least 1 paying or pre-paying customer',15,paid>=1,'Mark them “Paid” in your first-10 list.','nav','plan');
+    add('5 or more names on your first-10 list',10,named>=5,'Investors ask who the first customers will be.','nav','plan');
+    add('6+ months of personal runway',10,ir.months>=6,'Funders back founders who aren’t desperate.','nav','plan');
+    add('Startup India (DPIIT) recognition',10,S.regs.dpiit==='done','Unlocks the Seed Fund and most schemes.','nav','compliance');
+  }else{
+    add('Last month’s books closed',15,!needsClose(),'Three numbers, two minutes.','close');
+    add('6 or more months of numbers',10,S.history.length>=6,'Close each month in the app. Lenders ask for 6–12 months.','nav','cash');
+    add('6+ months of runway',10,f.runway>=6,'Raising with little runway weakens your terms.','nav','cash');
+    add('No overdue filings',10,overdueComp().length===0,'Banks and investors check GST and ROC filings.','nav','compliance');
+    add('Startup India (DPIIT) recognition',10,S.regs.dpiit==='done','Needed for the Seed Fund and the credit guarantee scheme.','nav','compliance');
+    add('Udyam (MSME) registration',5,S.regs.udyam==='done','Free. Needed for CGTMSE loans and TReDS.','nav','compliance');
+  }
+  const packPts=PACK.reduce((a,x)=>a+(F.pack[x.k]?x.pts:0),0);
+  const score=rows.reduce((a,r)=>a+(r.got?r.pts:0),0)+packPts;
+  return{score,rows,packPts};
+}
+function fundGap(){const f=fin();return f.net>0?Math.max(0,f.net*18-f.cash):0}
+const FTYPE={grant:'Grant',govloan:'Govt-backed loan',loan:'Loan',rbf:'Revenue-based',invoice:'Invoice finance',equity:'Equity'};
+function fundOptions(){
+  const p=S.profile,f=fin(),sc=fundScore().score,st=p.stage,idea=st==='idea';
+  const dp=S.regs.dpiit==='done',dpP=S.regs.dpiit==='progress',ud=S.regs.udyam==='done';
+  const hist=S.history.length,rev=p.rev||0;
+  const unpaid=S.recv.filter(r=>!r.paid).reduce((a,r)=>a+r.amt,0);
+  const paid=S.first10.filter(c=>c.n&&c.s==='Paid').length;
+  const h=S.history.slice(-12),growth=h.length>=3&&h[0].rev>0?(h[h.length-1].rev/h[0].rev-1):0;
+  const O=[];
+  const o=(k,n,type,d,amt,dil,speed,docs,url,fit,why)=>O.push({k,n,type,d,amt,dil,speed,docs,url,fit,why});
+  // fit: 3 strong, 2 possible, 1 later
+  {const ok=st==='idea'||st==='early';o('sisfs','Startup India Seed Fund','grant','Money for a proof of concept, prototype or market entry, given through approved incubators.','Up to ₹20 L grant, or up to ₹50 L as debt','None on the grant','2–4 months',['DPIIT certificate','Pitch deck','Proof-of-concept plan and budget','Incorporation certificate'],'https://seedfund.startupindia.gov.in',
+    !ok?1:dp?3:2, !ok?['Meant for startups at idea or first-sales stage.']:[ '✓ Your stage fits.', dp?'✓ DPIIT recognition done.':dpP?'! Finish DPIIT recognition first. It is in progress.':'! Get DPIIT recognition first.'])}
+  o('state','Your state’s startup grants','grant','Most state startup missions give grants, rent support and patent-fee refunds to registered startups.','Varies by state','None','1–3 months',['State startup registration','DPIIT certificate','Pitch deck'],'',
+    st==='scaling'?1:2, st==='scaling'?['Mostly for early-stage startups.']:['✓ Open to startups at your stage.','! Check your state’s startup portal for open calls.']);
+  {const tooBig=st==='scaling';o('mudra','MUDRA loan','govloan','Collateral-free bank loans for micro businesses, in three tiers.','Up to ₹10 L, or ₹20 L for repeat borrowers','None','2–6 weeks',['KYC and PAN','Business plan or quotations','6–12 months of bank statements'],'https://www.mudra.org.in',
+    tooBig?1:idea?2:3, tooBig?['Too small for your size of business.']:idea?['! Banks look for a running business or a strong plan.','✓ No collateral needed.']:['✓ A running business with sales.','✓ No collateral needed.'])}
+  o('cgtmse','CGTMSE-backed bank loan','govloan','Term loans and working capital without collateral for Udyam-registered micro and small businesses.','Sized on your books','None','3–6 weeks',['Udyam certificate','2 years of financials if you have them','Bank statements','GST returns'],'https://www.cgtmse.in',
+    idea?1:ud?3:2, idea?['Opens once you have sales.']:[ud?'✓ Udyam registration done.':'! Do the free Udyam registration first.',hist>=6?'✓ 6+ months of numbers.':'! Banks want 6–12 months of books.']);
+  o('cgss','Credit Guarantee Scheme for Startups','govloan','A government guarantee on loans from banks and NBFCs to DPIIT-recognised startups.','Guarantee up to ₹20 Cr per borrower','None','4–8 weeks',['DPIIT certificate','Financial statements','Business plan','Bank statements'],'https://www.ncgtc.in',
+    idea?1:dp&&hist>=6&&rev>0?3:2, idea?['Opens once you have sales.']:[dp?'✓ DPIIT recognition done.':'! Needs DPIIT recognition.',hist>=6?'✓ 6+ months of numbers.':'! Close more months: lenders want a track record.']);
+  o('rbf','Revenue-based financing','rbf','Get cash now and repay as a share of your monthly revenue. Platforms such as Klub, GetVantage and Recur Club offer it.','Sized on your monthly revenue','None','1–3 weeks',['Bank statements','Sales data from your payment gateway or books','GST returns'],'',
+    rev>=300000&&hist>=6?3:rev>0?2:1, rev<=0?['Needs steady monthly revenue.']:[rev>=300000?'✓ Monthly sales of '+inr(rev)+'.':'! Most providers want about ₹3 L+ a month.',hist>=6?'✓ 6+ months of numbers.':'! Usually needs 6+ months of revenue history.','✓ Good for ad spend and inventory.']);
+  o('invoice','Invoice discounting / TReDS','invoice','Get paid now on invoices your customers will pay later. TReDS is the RBI-regulated platform for MSMEs selling to large buyers.',unpaid?'About '+inr(unpaid*0.8)+' on your '+inr(unpaid)+' unpaid':'Up to about 80% of an invoice','None','2–7 days',['Invoices','Buyer details','Udyam certificate for TReDS'],'',
+    unpaid>0?3:1, unpaid>0?['✓ You have '+inr(unpaid)+' in unpaid invoices.','! Works best when buyers are larger companies.']:['Needs unpaid invoices from business customers.']);
+  {const tr=paid>=3||rev>0;o('angel','Angel investors','equity','Individuals or angel networks who invest small amounts early, usually for 10–20% of the company.','Often ₹25 L – ₹2 Cr','Equity','2–4 months',['Pitch deck','Investor memo','Cap table','Data room'],'',
+    st==='scaling'?1:tr&&sc>=60?3:2, st==='scaling'?['You are past the typical angel stage.']:[tr?'✓ You have paying customers.':'! Show paying customers first.',sc>=60?'✓ Readiness score '+sc+'/100.':'! Raise your readiness score to 60+ first.'])}
+  o('vc','Venture capital','equity','Funds that invest larger amounts for fast-growing companies, in exchange for equity and a board seat.','Often ₹2 Cr and up','Equity','3–6 months',['Pitch deck','Financial model','Data room','References'],'',
+    idea||st==='early'?1:growth>=.3&&sc>=70?3:2, idea||st==='early'?['VCs usually want 12+ months of strong growth.']:[growth>=.3?'✓ Sales grew '+Math.round(growth*100)+'% over '+h.length+' months.':'! VCs look for fast growth, often 2–3x a year.',sc>=70?'✓ Readiness score '+sc+'/100.':'! Raise your readiness score to 70+ first.']);
+  return O.sort((a,b)=>b.fit-a.fit);
+}
+const FIT={3:['good','Strong fit'],2:['warn','Possible'],1:['','Not yet']};
+const FSTATUS=[['','Not started'],['prep','Preparing'],['applied','Applied'],['won','Got it'],['no','Didn’t work out']];
+function ring(score){const r=52,c=2*Math.PI*r,on=c*score/100;const tone=score>=70?'var(--good)':score>=40?'var(--pop)':'var(--bad)';
+  return `<svg width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Readiness ${score} out of 100"><circle cx="64" cy="64" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="12"/><circle cx="64" cy="64" r="${r}" fill="none" stroke="${tone}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${on} ${c}" transform="rotate(-90 64 64)"/><text x="64" y="68" text-anchor="middle" font-family="Bricolage Grotesque,system-ui,sans-serif" font-weight="800" font-size="36" fill="var(--ink)">${score}</text><text x="64" y="88" text-anchor="middle" font-size="12" fill="var(--muted)">out of 100</text></svg>`}
+function vFund(){
+  const p=S.profile,F=FD(),f=fin(),fs=fundScore(),opts=fundOptions(),gap=fundGap();
+  const filt=UI.fundFilter||'All';const groups={All:()=>true,Grants:o=>o.type==='grant','Loans':o=>['govloan','loan','rbf','invoice'].includes(o.type),'No equity':o=>o.type!=='equity',Equity:o=>o.type==='equity'};
+  const shown=opts.filter(groups[filt]);
+  const strong=opts.filter(o=>o.fit===3).length;
+  const apps=FSTATUS.slice(1).map(([v,l])=>[l,opts.filter(o=>F.status[o.k]===v).length]).filter(x=>x[1]);
+  const overdue=S.recv.filter(r=>!r.paid&&parseISO(r.due)<TODAY).reduce((a,r)=>a+r.amt,0);
+  const next=fs.rows.find(r=>!r.got);
+  return `<header class="pagehead"><div><div class="eyebrow">Funding · ${esc(p.company)}</div><h1 style="margin-top:8px">Find the money that fits you.</h1><p class="lede">Grants, government-backed loans, revenue-based finance and investors, ranked for ${esc(p.company)} from your stage, sales, runway and registrations.</p></div></header>
+  <div class="grid g-main">
+   <section class="card raised">
+    <div class="card-head"><div><h2>Funding readiness</h2><p class="small muted" style="margin-top:4px">What lenders and investors check first. It updates as your numbers and paperwork change.</p></div></div>
+    <div class="fready">
+     <div class="fring">${ring(fs.score)}<div class="small muted" style="text-align:center">${fs.score>=70?'Ready to apply widely':fs.score>=40?'Ready for some options':'Get the basics in place'}</div></div>
+     <div class="list" style="flex:1;min-width:0">
+      ${fs.rows.map(r=>`<div class="li fr"><span class="check ${r.got?'on':''}" aria-hidden="true">${ICON.tick}</span><div class="grow"><div class="t">${esc(r.t)}</div>${r.got?'':`<div class="small muted">${esc(r.how)}</div>`}</div><span class="pill ${r.got?'good':''} num">${r.got?'+':''}${r.pts}</span>${r.got?'':`<button class="btn sm" data-act="${r.act}" ${r.v?`data-v="${r.v}"`:''}>Fix</button>`}</div>`).join('')}
+      <div class="li fr"><span class="check ${fs.packPts===40?'on':''}" aria-hidden="true">${ICON.tick}</span><div class="grow"><div class="t">Investor pack</div><div class="small muted">${PACK.filter(x=>F.pack[x.k]).length} of ${PACK.length} pieces ready. Tick them below.</div></div><span class="pill ${fs.packPts?'good':''} num">${fs.packPts} / 40</span></div>
+     </div>
+    </div>
+    ${next?`<div class="alert warn" style="margin-top:14px">${ICON.arrow}<div><b>Next best step:</b> ${esc(next.t)}. ${esc(next.how)}</div></div>`:`<div class="alert good" style="margin-top:14px">${ICON.tick}<div><b>Your basics are in place.</b> Finish the investor pack to reach 100.</div></div>`}
+   </section>
+   <aside class="card stack" style="align-self:start">
+    <h3>How much do you need?</h3>
+    ${p.stage!=='idea'&&gap>0?`<p class="small muted">At today’s burn of ${inr(f.net)} a month, you’d need about <b style="color:var(--ink)">${inr(gap)}</b> more to reach 18 months of runway.</p>`:p.stage!=='idea'?`<p class="small muted">You aren’t burning cash. Raise only for a clear growth plan.</p>`:`<p class="small muted">Add up your cost to launch and 12 months of living costs.</p>`}
+    <div class="field"><label for="fd-need">Amount</label><div class="money"><span class="pre">₹</span><input class="input num" type="number" step="any" min="0" id="fd-need" data-bind="fund.need" data-type="lakh" value="${F.need?F.need/1e5:''}" placeholder="${gap?Math.round(gap/1e5):''}"><span class="suf">L</span></div></div>
+    <div class="field"><label for="fd-use">What it’s for</label><select class="input" id="fd-use" data-bind="fund.use">${['','Working capital and inventory','Product and hiring','Marketing and growth','Equipment and assets','Proof of concept or prototype'].map(v=>`<option value="${esc(v)}" ${(F.use||'')===v?'selected':''}>${v||'Choose one'}</option>`).join('')}</select></div>
+    ${p.stage!=='idea'?`<div class="divider"></div><div><div class="lbl">Before you borrow</div><p class="small" style="margin-top:6px">${overdue?`<b>${inr(overdue)}</b> is already owed to you in overdue invoices.`:'No overdue invoices. Good.'} Cutting 10% of spend frees <b>${inr((p.spend||0)*0.1)}</b> a month.</p><button class="btn sm ghost" style="padding-left:0;margin-top:6px" data-act="nav" data-v="cash">Open Cash ${ICON.arrow}</button></div>`:''}
+   </aside>
+  </div>
+  <section class="card">
+   <div class="card-head"><div><h2>Your funding match</h2><p class="small muted" style="margin-top:4px">${strong} strong ${strong===1?'fit':'fits'} right now${apps.length?' · '+apps.map(([l,n])=>n+' '+l.toLowerCase()).join(' · '):''}. Track each one with the status menu.</p></div><div class="filters">${Object.keys(groups).map(g=>`<button class="chip" data-act="fund-filter" data-v="${g}" aria-pressed="${filt===g}">${g}</button>`).join('')}</div></div>
+   <div class="fopts">${shown.map(o=>{const[tone,lab]=FIT[o.fit];return `<article class="fopt fit${o.fit}">
+     <div class="spread" style="align-items:flex-start"><div style="min-width:0"><span class="ftype ${o.type}">${FTYPE[o.type]}</span><h3 style="margin-top:6px">${esc(o.n)}</h3></div><span class="pill ${tone}">${lab}</span></div>
+     <p class="small muted">${esc(o.d)}</p>
+     <div class="fmeta"><div><span>Amount</span><b>${esc(o.amt)}</b></div><div><span>Equity given</span><b>${esc(o.dil)}</b></div><div><span>Typical time</span><b>${esc(o.speed)}</b></div></div>
+     <ul class="fwhy">${o.why.map(w=>`<li class="${w[0]==='✓'?'ok':w[0]==='!'?'todo':''}">${esc(w.replace(/^[✓!] /,''))}</li>`).join('')}</ul>
+     <div class="small muted"><b style="color:var(--ink)">You’ll need:</b> ${o.docs.map(esc).join(', ')}</div>
+     <div class="foot">${o.url?`<a href="${o.url}" target="_blank" rel="noopener">Official site ↗</a>`:'<span></span>'}<div class="row" style="gap:8px"><select id="fs-${o.k}" data-bind="fund.status.${o.k}" aria-label="Status for ${esc(o.n)}">${FSTATUS.map(([v,l])=>`<option value="${v}" ${(F.status[o.k]||'')===v?'selected':''}>${l}</option>`).join('')}</select><button class="btn sm ${o.fit===3?'primary':''}" data-act="fund-help" data-k="${o.k}">Get help applying</button></div></div>
+    </article>`}).join('')}</div>
+   <p class="small muted" style="margin-top:14px">Amounts and rules change often. Check the official site or ask your CA before you apply. Growth Planner doesn’t lend or invest.</p>
+  </section>
+  <section class="card">
+   <div class="card-head"><div><h2>Investor pack</h2><p class="small muted" style="margin-top:4px">What angels, VCs and many lenders ask for. Tick each one when it’s ready. The advisor can draft the writing for you.</p></div><span class="pill ${fs.packPts===40?'good':'accent'} num">${PACK.filter(x=>F.pack[x.k]).length} of ${PACK.length} ready</span></div>
+   <div class="fpack">${PACK.map(x=>{const on=!!F.pack[x.k];return `<div class="fpk ${on?'done':''}"><button class="check ${on?'on':''}" data-act="fund-pack" data-k="${x.k}" aria-pressed="${on}" aria-label="${esc(x.n)} ready">${ICON.tick}</button><div class="grow"><div class="t">${esc(x.n)}</div><div class="small muted">${esc(x.d)}</div>${!on&&x.ask?`<button class="btn sm ghost" style="padding-left:0;margin-top:4px" data-act="fund-ask" data-q="${esc(x.ask)}">Draft it with the advisor ${ICON.arrow}</button>`:''}${!on&&x.go?`<button class="btn sm ghost" style="padding-left:0;margin-top:4px" data-act="nav" data-v="${x.go}">Open Cash ${ICON.arrow}</button>`:''}</div><span class="pill num">${x.pts} pts</span></div>`}).join('')}</div>
+  </section>`;
+}
+function fundHelp(k){
+  const o=fundOptions().find(x=>x.k===k);if(!o)return;
+  openLayer(`<div><div class="eyebrow">Get help applying</div><h2 style="margin-top:4px">${esc(o.n)}</h2><p class="muted small" style="margin-top:6px">${esc(o.d)}</p></div>
+   <div class="stack" style="gap:8px">
+    <div class="lbl">How we help</div>
+    <div class="list small">
+     <div class="li"><span class="pill accent">1</span><div class="grow">We check your eligibility against your Growth Planner numbers.</div></div>
+     <div class="li"><span class="pill accent">2</span><div class="grow">A partner CA prepares the documents: ${o.docs.map(esc).join(', ')}.</div></div>
+     <div class="li"><span class="pill accent">3</span><div class="grow">You review, sign and submit. We track it here until you hear back.</div></div>
+    </div>
+   </div>
+   <div class="alert warn">${ICON.warn}<div>Application help with partner CAs is coming soon. For now, add this to your plan and the advisor can help you prepare.</div></div>
+   <div class="row"><button class="btn primary" data-act="fund-task" data-k="${o.k}">Add “Apply for ${esc(o.n)}” to my plan</button><button class="btn ghost" data-act="close-layer">Close</button></div>`);
 }
 
 /* ================= view: team ================= */
@@ -1000,6 +1358,7 @@ function onInput(e,live){
     if(el.dataset.f==='n'){r.n=el.value;save();if(!live)rerender();return}
     if(live)return;const P=PIPES[el.dataset.gp];r.amt=el.value===''?0:(P.unit==='lakh'?Math.round(+el.value*1e5):+el.value);save();rerender();return}
   if(el.dataset.ten!==undefined){if(live&&el.dataset.f==='n'){S.first10[+el.dataset.ten].n=el.value;save();return}S.first10[+el.dataset.ten][el.dataset.f]=el.value;save();rerender();return}
+  if(el.id==='chase-msg'){const a=document.getElementById('chase-wa');if(a)a.href='https://wa.me/?text='+encodeURIComponent(el.value);return}
   if(el.id==='ask'){UI.draft=el.value;el.style.height='auto';el.style.height=Math.min(180,el.scrollHeight)+'px'}
 }
 document.addEventListener('input',e=>onInput(e,true));
@@ -1018,6 +1377,8 @@ document.addEventListener('submit',e=>{
   if(k==='task'){S.items.push({id:uid(),title:fd.get('t'),kind:'task',owner:fd.get('o'),due:fd.get('d')||iso(addDays(TODAY,7)),status:'todo',comments:[]});save();render();toast(`Assigned to ${member(fd.get('o')).name.split(' ')[0]}`)}
   if(k==='comment'){const it=S.items.find(i=>i.id===f.dataset.id);it.comments.push({by:'me',t:fd.get('c'),at:iso(TODAY)});save();render()}
   if(k==='ask'){ask(fd.get('q')||'')}
+  if(k==='lead'){const n=(fd.get('n')||'').trim();if(!n)return;const c=(fd.get('c')||'').trim();DL().push({id:uid(),n,val:+fd.get('v')||0,stage:'lead',step:c?'Contact: '+c:'Find the decision maker',next:iso(addDays(TODAY,2)),src:'Lead finder'});save();render();document.getElementById('nl-n')?.focus();toast(`${n} added to Customers`)}
+  if(k==='deal'){const n=(fd.get('n')||'').trim();if(!n)return;DL().push({id:uid(),n,val:+fd.get('v')||0,stage:'lead',step:'',next:iso(addDays(TODAY,3)),src:fd.get('s')});save();render();document.getElementById('nd-n')?.focus();toast('Deal added with a follow-up in 3 days')}
   if(k==='gp'){const kk=f.dataset.k,P=PIPES[kk];const n=(fd.get('n')||'').trim();if(!n)return;rows(kk).push({id:uid(),n,s:P.stages[0],amt:0});save();rerender();document.getElementById('gp-new-'+kk)?.focus();toast('Added. Move it along as things progress.')}
   if(k==='close'){const m=fd.get('m');const row={m,rev:Math.round(+fd.get('rev')*1e5),spend:Math.round(+fd.get('spend')*1e5),cash:Math.round(+fd.get('cash')*1e5)};S.history=S.history.filter(h=>h.m!==m).concat(row).sort((a,b)=>a.m<b.m?-1:1);
     const last=S.history[S.history.length-1];Object.assign(S.profile,{rev:last.rev,spend:last.spend,cash:last.cash});const wk=S.weeks[weekKey()];if(wk)wk.moves.forEach(mv=>{if(mv.act==='close')mv.done=true});markStreak();save();closeLayer();render();toast(`${mlabel(m)} closed. Forecast updated.`)}
@@ -1031,7 +1392,7 @@ document.addEventListener('click',async e=>{
   const act=b.dataset.act,id=b.dataset.id;
   if(act!=='menu'&&act!=='menu-mobile'&&UI.menu&&!b.closest('.menu'))UI.menu=false;
   switch(act){
-   case 'nav':UI.view=b.dataset.v;UI.openTask=null;try{history.replaceState(null,'','#'+UI.view)}catch(_){}render();window.scrollTo(0,0);break;
+   case 'nav':{let v=b.dataset.v;if(GT.some(t=>t[0]===v)){UI.growTab=v;v='grow'}UI.view=v;UI.openTask=null;try{history.replaceState(null,'','#'+(v==='grow'?UI.growTab:v))}catch(_){}render();window.scrollTo(0,0);break}
    case 'menu':UI.menu=!UI.menu;render();break;
    case 'menu-mobile':openLayer(`<h2>${esc(S.profile.company)}</h2><div class="menu" style="position:static;box-shadow:none">${menuHTML().replace(/^<div class="menu" role="menu">|<\/div>$/g,'')}</div><button class="btn" data-act="close-layer">Close</button>`);break;
    case 'move':{const wk=thisWeek();const m=wk.moves.find(x=>x.id===id);m.done=!m.done;if(m.gk){const sk=m.gk.split(':')[1],st=(GOAL_STEPS[m.gk.split(':')[0]]||[]).find(x=>x.k===sk);if(st&&!st.auto){if(st.reg)S.regs[st.reg]=m.done?'done':(S.regs[st.reg]==='done'?'':S.regs[st.reg]);else GD().checks[m.gk]=m.done}}if(m.done){markStreak();S.seenMovesHelp=true;const nx=wk.moves.find(x=>!x.done);UI.openMove=nx?nx.id:null}else UI.openMove=m.id;save();rerender();
@@ -1052,6 +1413,20 @@ document.addEventListener('click',async e=>{
    case 'toggle-item':{const it=S.items.find(i=>i.id===id);it.status=it.status==='done'?'todo':'done';save();rerender();break}
    case 'idea-check':S.ideaChecks[b.dataset.k]=!S.ideaChecks[b.dataset.k];save();rerender();break;
    case 'scen-clear':S.scen.hire.on=S.scen.late.on=S.scen.drop.on=false;save();render();break;
+   case 'chase':openChase(id);break;
+   case 'chase-tone':openChase(UI.chase.id,b.dataset.v);break;
+   case 'chase-copy':{const t=document.getElementById('chase-msg');try{await navigator.clipboard.writeText(t.value);toast('Copied. Paste it into WhatsApp or email.')}catch(_){t.focus();t.select();toast('Selected. Press Ctrl+C or Cmd+C to copy.')}break}
+   case 'chase-log':{const r=S.recv.find(x=>x.id===id);if(!r)break;r.chases=(r.chases||[]).concat({at:iso(TODAY),tone:UI.chase.tone});save();closeLayer();render();toast(`Logged. Reminder ${r.chases.length} to ${r.who}.`);break}
+   case 'add-ch':{const c={id:uid(),n:'New channel',spend:0,cust:0,aov:S.be&&S.be.price||0,margin:40,orders:1};CH().push(c);save();render();const el=document.getElementById('ch-n-'+c.id);if(el){el.focus();el.select()}break}
+   case 'lead-run':leadRun(b.dataset.k);break;
+   case 'lead-stop':leadAbort&&leadAbort.abort();break;
+   case 'lead-copy':{const t=LD().out[b.dataset.k]||'';try{await navigator.clipboard.writeText(t);toast('Copied')}catch(_){openLayer(`<h2>Copy this text</h2><textarea class="input" rows="12" id="copybox">${esc(t)}</textarea><button class="btn" data-act="close-layer">Done</button>`);setTimeout(()=>{const x=document.getElementById('copybox');x&&x.select()},50)}break}
+   case 'lead-write':{const x=DL().find(d=>d.id===id);if(!x)break;LD().in.target=x.n+(x.step&&/^Contact: /.test(x.step)?' ('+x.step.replace(/^Contact: /,'')+')':'');save();rerender();document.getElementById('outreach')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Now press “Write my outreach”');break}
+   case 'fund-filter':UI.fundFilter=b.dataset.v;rerender();break;
+   case 'fund-pack':{const P=FD().pack;P[b.dataset.k]=!P[b.dataset.k];save();rerender();if(P[b.dataset.k])toast(`Readiness now ${fundScore().score}/100`);break}
+   case 'fund-help':fundHelp(b.dataset.k);break;
+   case 'fund-task':{const o=fundOptions().find(x=>x.k===b.dataset.k);if(!o)break;const t='Apply for '+o.n;if(!S.items.some(i=>i.title===t))S.items.push({id:uid(),title:t,kind:'initiative',owner:'me',due:iso(addDays(TODAY,21)),status:'todo',comments:[]});const F=FD();if(!F.status[o.k])F.status[o.k]='prep';save();closeLayer();render();toast('Added to your plan. Status set to Preparing.');break}
+   case 'fund-ask':{const q=b.dataset.q;UI.view='advisor';try{history.replaceState(null,'','#advisor')}catch(_){}render();window.scrollTo(0,0);ask(q);break}
    case 'comp-filter':UI.compFilter=b.dataset.v;render();break;
    case 'comp-done':S.compDone[id]=!S.compDone[id];save();rerender();if(S.compDone[id])toast('Marked as filed');break;
    case 'pf':UI.personFilter=b.dataset.v;render();break;
@@ -1181,7 +1556,7 @@ let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>
 
 /* ================= boot ================= */
 (async function boot(){
-  const h=(location.hash||'').slice(1);if(NAV.some(n=>n[0]===h))UI.view=h;
+  const h=(location.hash||'').slice(1);if(NAV.some(n=>n[0]===h))UI.view=h;else if(GT.some(t=>t[0]===h)){UI.view='grow';UI.growTab=h}
   app.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;color:var(--muted)">Loading your plan…</div>';
   try{
     const r=await fetch('/api/state',{cache:'no-store'});
