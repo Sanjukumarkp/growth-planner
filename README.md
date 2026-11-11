@@ -78,7 +78,8 @@ Codes are 6 digits, valid for 10 minutes, at most 5 tries per code and 5 codes p
 | `APP_URL` | Yes in production | Links in emails |
 | `ANTHROPIC_API_KEY` | For the advisor | Server-side key; never sent to browsers |
 | `ANTHROPIC_MODEL` | No | Defaults to `claude-sonnet-5-5` |
-| `ADVISOR_MONTHLY_LIMIT` | No | Questions per company per month (default 50) |
+| `ADVISOR_MONTHLY_LIMIT` | No | AI requests per company per month: advisor, lead finder and outreach writer (default 50) |
+| `OUTREACH_DAILY_LIMIT` | No | Sales emails a company can send from the app in 24 hours (default 40). Uses `RESEND_API_KEY` and `EMAIL_FROM`; replies go to the founder’s own email |
 | `RESEND_API_KEY`, `EMAIL_FROM` | For email | Sign-in codes, password reset, invites, reminders |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth web client |
 | `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` | For Zoho Books | Server-based app from the Zoho API Console |

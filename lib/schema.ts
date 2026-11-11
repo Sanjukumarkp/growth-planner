@@ -75,6 +75,16 @@ create table if not exists advisor_usage (
   primary key (company_id, month)
 );
 
+create table if not exists outreach_sends (
+  id bigserial primary key,
+  company_id uuid not null references companies(id) on delete cascade,
+  user_id uuid references users(id) on delete set null,
+  to_email text not null,
+  subject text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists outreach_sends_company_day on outreach_sends (company_id, created_at);
+
 create table if not exists reminder_log (
   company_id uuid not null references companies(id) on delete cascade,
   kind text not null,

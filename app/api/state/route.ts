@@ -2,10 +2,11 @@ import { sql, audit } from '@/lib/db';
 import { body, fail, json } from '@/lib/http';
 import { authed } from '@/lib/route';
 import { status as zohoStatus } from '@/lib/zoho';
+import { emailConfigured } from '@/lib/email';
 
 export const GET = authed(async (_req, { user, companyId, role }) => {
   const [s] = await sql`select data, version, updated_at from company_state where company_id = ${companyId}`;
-  return json({ state: s?.data ?? null, version: s?.version ?? 0, role, user: { id: user.id, name: user.name, email: user.email }, zoho: await zohoStatus(companyId) });
+  return json({ state: s?.data ?? null, version: s?.version ?? 0, role, user: { id: user.id, name: user.name, email: user.email }, zoho: await zohoStatus(companyId), email: emailConfigured() });
 });
 
 /** Saves the whole planner state. Rejects with 409 if someone else saved first. */

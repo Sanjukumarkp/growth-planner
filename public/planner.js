@@ -245,6 +245,21 @@ function sampleState(){
    {id:uid(),n:'Amazon',spend:60000,cust:260,aov:600,margin:22,orders:1.6},
    {id:uid(),n:'Influencer collabs',spend:120000,cust:110,aov:650,margin:40,orders:1.8},
    {id:uid(),n:'WhatsApp & referrals',spend:8000,cust:140,aov:720,margin:45,orders:4}];
+  {const D=st.deals,dd=n=>iso(addDays(TODAY,n));
+   Object.assign(D[0],{person:'Kabir Shah',role:'Head of F&B',email:'kabir@brewhouse.example'});
+   Object.assign(D[1],{person:'Neha Pillai',role:'HR Manager',email:'neha@infosphere.example'});
+   Object.assign(D[2],{person:'Arjun Rao',role:'Category Manager',email:'arjun@freshbasket.example'});
+   Object.assign(D[3],{role:'Purchase head'});
+   st.msgs=[
+    {id:uid(),deal:D[0].id,dir:'out',ch:'email',status:'sent',at:dd(-12),subject:'Turmeric latte for the Brewhouse menu',body:'Hi Kabir,\n\nI saw Brewhouse added a winter menu across your 12 cafés. Our turmeric latte mix is made for cafés: one scoop, steamed milk, and a ₹180 drink with a good margin.\n\nCould I send a tasting kit for your team this week?\n\nAnanya, Haldi & Co.'},
+    {id:uid(),deal:D[0].id,dir:'in',ch:'email',status:'logged',at:dd(-10),outcome:'interested',body:'Sounds interesting. Send me pricing for 12 outlets and the tasting kit.'},
+    {id:uid(),deal:D[0].id,dir:'out',ch:'note',kind:'proposal',status:'sent',at:dd(-8),subject:'Proposal',body:'**Summary**\nTurmeric latte and spice blends for 12 Brewhouse cafés, with staff training and monthly delivery.\n**Pricing**\n₹4.8 L a year, billed monthly.'},
+    {id:uid(),deal:D[0].id,dir:'out',ch:'email',status:'sent',at:dd(-5),subject:'Re: Turmeric latte for the Brewhouse menu',body:'Hi Kabir, sharing the revised price sheet with the 12-outlet discount. Happy to start with 3 outlets as a trial.\n\nAnanya'},
+    {id:uid(),deal:D[0].id,dir:'out',ch:'email',status:'scheduled',sendAt:dd(0),subject:'Re: Turmeric latte for the Brewhouse menu',body:'Hi Kabir, checking in on the revised price sheet. Shall we start the 3-outlet trial next month?\n\nAnanya, Haldi & Co.'},
+    {id:uid(),deal:D[2].id,dir:'out',ch:'email',status:'sent',at:dd(-6),subject:'Turmeric latte mixes for FreshBasket',body:'Hi Arjun,\n\nOur turmeric latte mixes sell well on our own site and on Amazon. Would FreshBasket consider a shelf trial in 10 Mumbai stores?\n\nAnanya, Haldi & Co.'},
+    {id:uid(),deal:D[2].id,dir:'in',ch:'email',status:'logged',at:dd(-1),outcome:'interested',body:'Hi Ananya, send me your price list and trade margins for modern trade. We review new products on the 25th.'},
+    {id:uid(),deal:D[1].id,dir:'out',ch:'email',status:'sent',at:dd(-3),subject:'Diwali gifting boxes for Infosphere',body:'Hi Neha,\n\nWe make spice and latte gift boxes that teams actually use after Diwali. Could I send two sample boxes for you to see?\n\nAnanya, Haldi & Co.'}
+   ];}
   st.leads={in:{sell:'Turmeric latte mixes and spice blends',buyers:'Cafés, corporate gifting teams, modern trade stores',city:'Mumbai and Pune',size:'₹3–9 L a year per account',segment:'specialty cafés',channel:'WhatsApp',offer:'Free tasting kit for the team',goal:'20 café and gifting leads',budget:30000,weeks:2},out:{}};
   st.fund={need:2500000,use:'Working capital and inventory',pack:{forecast:true,room:true},status:{invoice:'prep'}};
   const lastW=mondayOf(addDays(TODAY,-7)),w2=mondayOf(addDays(TODAY,-14)),w3=mondayOf(addDays(TODAY,-21));
@@ -405,6 +420,7 @@ function genMoves(){
   {const sd=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost'&&x.next&&parseISO(x.next)<TODAY).sort((a,b)=>(b.val||0)-(a.val||0))[0];if(sd)c.push({t:`Follow up with ${sd.n}`,why:`${sd.step?sd.step+'. ':''}It was due ${fmtD(parseISO(sd.next))}. A ${inr(sd.val||0)} deal goes cold fast.`,tag:'Sales',go:'sales',pr:78,how:['Open Customers and find this deal.','Message or call them today with the next step.','Set a new “By” date so This week reminds you again.']})}
   {const lc=CH().map(x=>({x,u:ue(x)})).filter(r=>r.u.ratio!=null&&r.u.ratio<1&&r.x.spend>0).sort((a,b)=>b.x.spend-a.x.spend)[0];if(lc)c.push({t:`Fix or pause ${lc.x.n}`,why:`Each new customer costs ${inr(lc.u.cac)} and earns back only ${inr(lc.u.ltv)} in a year.`,tag:'Growth',go:'unit',pr:66,how:['Open Unit economics and check this channel’s numbers.','Cut its budget, raise prices, or improve repeat orders.','Move the budget to your best channel.']})}
   {const op=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost').length;if(p.stage!=='idea'&&op<5)c.push({t:'Find 10 new prospects',why:`Only ${op} open ${op===1?'deal':'deals'} in your pipeline. The lead finder shows who to target and where to find them.`,tag:'Sales',go:'leads',pr:57,how:['Open the lead finder and build your ideal customer profile.','Use the ready-made searches to find 10 businesses.','Add each one as a lead so This week reminds you to follow up.']})}
+  outDueMoves(c);
   if(od)c.push({t:`Chase ${inr(od.amt)} from ${od.who}`,why:`${days(parseISO(od.due),TODAY)} days overdue. This is money you have already earned.`,tag:'Cash',go:'cash',pr:85});
   if(f.runway<9&&p.stage!=='idea')c.push({t:`Find ${inr(f.cutFor12)} a month to cut or bring in`,why:`That takes you from ${runwayTxt(f.runway)} to 12 months of runway.`,tag:'Cash',go:'cash',pr:80});
   if(needsClose()){const lm=new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1);c.push({t:`Close the books for ${MONL[lm.getMonth()]}`,why:'Three numbers: sales, spend and bank balance. Takes two minutes.',tag:'Numbers',act:'close',pr:75})}
@@ -714,7 +730,7 @@ function zohoBlock(){
   return owner?`<div class="zoho"><a class="btn sm primary" href="/api/zoho/connect">Connect Zoho Books</a><div class="small muted" style="margin-top:6px">Read-only. Pulls unpaid invoices and bills, your bank balance, and six months of sales and spend. Syncs every morning.</div></div>`+others
     :`<div class="small muted">Ask the account owner to connect Zoho Books.</div>`+others;
 }
-async function refreshFromServer(){const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)return;const j=await r.json();serverVersion=j.version;if(!S||!S.sample)S=j.state;GP.zoho=j.zoho;render();paintSync()}
+async function refreshFromServer(){const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)return;const j=await r.json();serverVersion=j.version;if(!S||!S.sample)S=j.state;GP.zoho=j.zoho;GP.email=j.email;render();paintSync()}
 function historyCard(){
   const h=S.history.slice(-6);
   return `<section class="card"><div class="card-head"><h2>Month by month</h2><button class="btn sm" data-act="close">Close a month</button></div>
@@ -795,6 +811,7 @@ function ctxText(){
   {const m=goalMetric(),nx=nextStep();L.push(`Goal progress: ${m.big.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()} ${m.label}. Steps done: ${goalSteps().filter(stepDone).map(x=>x.t).join('; ')||'none'}. Next step: ${nx?nx.t:'all done'}.`);
    const pk={grow:'Channel tests',raise:'Investor pipeline',team:'Hiring pipeline'}[p.goal];if(pk&&rows(p.goal).length)L.push(pk+': '+rows(p.goal).map(r=>`${r.n} (${r.s}${r.amt?', '+inr(r.amt):''})`).join('; '))}
   L.push('Open initiatives: '+S.items.filter(i=>i.status!=='done').map(i=>`${i.title} (owner ${member(i.owner).name}, due ${fmtD(parseISO(i.due))}${parseISO(i.due)<TODAY?', OVERDUE':''})`).join('; '));
+  if(MS().length){const o=outStats();L.push(`Outreach: ${o.sent} messages sent in the last 7 days, reply rate ${o.rate==null?'n/a':Math.round(o.rate*100)+'%'}, ${o.due} follow-ups due today.`)}
   {const st=pipeStats();if(DL().length)L.push(`Sales pipeline: ${inr(st.val)} open across ${st.open.length} deals, ${inr(st.wtd)} weighted. Deals needing follow-up: ${st.stale.map(x=>x.n).join('; ')||'none'}.`)}
   if(CH().length)L.push('Unit economics by channel: '+CH().map(c=>{const u=ue(c);return `${c.n}: spend ${inr(c.spend)}/mo, ${c.cust} new customers, cost per customer ${u.cac==null?'n/a':inr(u.cac)}, 1-yr value ${inr(u.ltv)}`}).join('; ')+'.');
   {const fs=fundScore(),F=FD();L.push(`Funding readiness: ${fs.score}/100. Missing: ${fs.rows.filter(r=>!r.got).map(r=>r.t).join('; ')||'none'}. Investor pack ready: ${PACK.filter(x=>F.pack[x.k]).map(x=>x.n).join(', ')||'nothing yet'}.${F.need?' Wants to raise '+inr(F.need)+(F.use?' for '+F.use:'')+'.':''} Best-fit funding: ${fundOptions().filter(o=>o.fit===3).map(o=>o.n).join(', ')||'none yet'}.`)}
@@ -884,9 +901,9 @@ function vComp(){
 }
 
 /* ================= grow: customers, unit economics, funding ================= */
-const GT=[['leads','Find leads'],['sales','Customers'],['unit','Unit economics'],['funding','Funding']];
+const GT=[['leads','Find leads'],['outreach','Outreach'],['sales','Customers'],['unit','Unit economics'],['funding','Funding']];
 function vGrow(){const t=UI.growTab||'leads';
-  return `<div class="subnav" role="tablist" aria-label="Grow">${GT.map(([k,n])=>`<button role="tab" data-act="nav" data-v="${k}" aria-selected="${t===k}">${n}</button>`).join('')}</div>`+({leads:vLeads,sales:vSales,unit:vUnit,funding:vFund}[t]||vLeads)()}
+  return `<div class="subnav" role="tablist" aria-label="Grow">${GT.map(([k,n])=>`<button role="tab" data-act="nav" data-v="${k}" aria-selected="${t===k}">${n}</button>`).join('')}</div>`+({leads:vLeads,outreach:vOutreach,sales:vSales,unit:vUnit,funding:vFund}[t]||vLeads)()}
 function DL(){return S.deals=S.deals||[]}
 function CH(){return S.channels=S.channels||[]}
 
@@ -903,7 +920,7 @@ function dealCard(x){const nd=x.next?parseISO(x.next):null,late=!nd||nd<TODAY;
    <div class="row" style="gap:6px"><div class="money" style="flex:1;min-width:120px"><span class="pre">₹</span><input class="input num" type="number" step="any" id="dv-${x.id}" data-arr="deals" data-id="${x.id}" data-f="val" data-type="num" value="${x.val||''}" placeholder="Deal value" aria-label="Deal value"></div>
     <select class="input" style="flex:1;min-width:120px" id="ds-${x.id}" data-arr="deals" data-id="${x.id}" data-f="stage" aria-label="Stage">${PSTAGE.map(s=>`<option value="${s[0]}" ${x.stage===s[0]?'selected':''}>${s[1]}</option>`).join('')}</select></div>
    <input class="input" id="dst-${x.id}" data-arr="deals" data-id="${x.id}" data-f="step" value="${esc(x.step||'')}" placeholder="Next step, e.g. Send the price sheet" aria-label="Next step">
-   <div class="row" style="gap:6px;justify-content:space-between"><label class="small muted" for="dd-${x.id}">By</label><input class="input" style="flex:1" type="date" id="dd-${x.id}" data-arr="deals" data-id="${x.id}" data-f="next" value="${x.next||''}" aria-label="Next step date">${late?`<span class="pill ${nd?'bad':'warn'}">${nd?days(nd,TODAY)+'d late':'No date'}</span>`:''}</div></div>`}
+   <div class="row" style="gap:6px;justify-content:space-between"><label class="small muted" for="dd-${x.id}">By</label><input class="input" style="flex:1" type="date" id="dd-${x.id}" data-arr="deals" data-id="${x.id}" data-f="next" value="${x.next||''}" aria-label="Next step date">${late?`<span class="pill ${nd?'bad':'warn'}">${nd?days(nd,TODAY)+'d late':'No date'}</span>`:''}</div><button class="btn sm ghost omsg" data-act="out-open" data-id="${x.id}">${dealMsgs(x.id).length?'Conversation':'Message'} ${ICON.arrow}</button></div>`}
 function vSales(){
   const p=S.profile,st=pipeStats(),d=DL();
   const cols=PSTAGE.slice(0,4);
@@ -1000,7 +1017,7 @@ function vLeads(){
   <section class="card">
    <div class="card-head"><div><div class="eyebrow">Step 3</div><h2 style="margin-top:4px">Add the prospects you find</h2><p class="small muted" style="margin-top:4px">Each one goes into Customers as a lead with a follow-up date, so This week reminds you.</p></div><span class="pill accent">${fromFinder.length} added from here</span></div>
    <form class="lead-add" data-form="lead"><input class="input" id="nl-n" name="n" placeholder="Business name" required aria-label="Business name"><input class="input" id="nl-c" name="c" placeholder="Contact person and role" aria-label="Contact"><div class="money"><span class="pre">₹</span><input class="input num" id="nl-v" name="v" type="number" step="any" placeholder="Likely value" aria-label="Likely deal value"></div><button class="btn primary">Add lead</button></form>
-   ${lead.length?`<div class="list" style="margin-top:12px">${lead.slice(-6).reverse().map(x=>`<div class="li"><div class="grow"><div class="t">${esc(x.n)}</div><div class="small muted">${PST[x.stage][1]}${x.step?' · '+esc(x.step):''}</div></div><b class="num">${x.val?inr(x.val):''}</b><button class="btn sm ghost" data-act="lead-write" data-id="${x.id}">Write to them</button></div>`).join('')}</div><button class="btn sm ghost" style="padding-left:0;margin-top:6px" data-act="nav" data-v="sales">See all in Customers ${ICON.arrow}</button>`:''}
+   ${lead.length?`<div class="list" style="margin-top:12px">${lead.slice(-6).reverse().map(x=>`<div class="li"><div class="grow"><div class="t">${esc(x.n)}</div><div class="small muted">${PST[x.stage][1]}${x.step?' · '+esc(x.step):''}</div></div><b class="num">${x.val?inr(x.val):''}</b><button class="btn sm ghost" data-act="out-open" data-id="${x.id}">Write to them</button></div>`).join('')}</div><button class="btn sm ghost" style="padding-left:0;margin-top:6px" data-act="nav" data-v="sales">See all in Customers ${ICON.arrow}</button>`:''}
   </section>
   <div class="grid g-2">
    <section class="card stack" id="outreach">
@@ -1023,6 +1040,164 @@ function vLeads(){
    </section>
   </div>
   <p class="small muted">Message people who are likely to want what you sell, say who you are, and stop when someone asks you to. Get consent before adding people to WhatsApp or email lists.</p>`;
+}
+
+
+const OUT_NOAI_MSG='The AI isn’t switched on for this server yet. You can still type messages, open WhatsApp or Gmail, and track replies.';
+function OUT_CAN_EMAIL(){return !!GP.email}
+async function OUT_SEND_EMAIL(x,c){
+  const r=await fetch('/api/outreach/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:x.email,subject:c.subject,body:c.body,company:S.profile.company})});
+  const j=await r.json().catch(()=>({}));if(r.status===401){location.href='/login'}if(!r.ok)throw {msg:j.error||'The email couldn’t be sent. Try again.'};return j}
+async function OUT_AI(prompt,onText){
+  leadAbort=new AbortController();let text='';
+  try{
+    const r=await fetch('/api/advisor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'outreach',messages:[{role:'user',content:prompt}]}),signal:leadAbort.signal});
+    if(r.status===401){location.href='/login';throw {msg:'Please sign in again.'}}
+    if(!r.ok){const j=await r.json().catch(()=>({}));if(r.status===503)throw {noAI:true};throw {msg:j.error}}
+    const rd=r.body.getReader(),dec=new TextDecoder();
+    for(;;){const {done,value}=await rd.read();if(done)break;text+=dec.decode(value,{stream:true});onText(text)}
+    return text;
+  }catch(err){if(err&&err.name==='AbortError')return text;throw err}
+  finally{leadAbort=null}
+}
+/* ---------- outreach: contact leads, AI messages, follow-ups, replies ---------- */
+function MS(){return S.msgs=S.msgs||[]}
+const OCH={email:'Email',whatsapp:'WhatsApp',linkedin:'LinkedIn',call:'Call',note:'Note'};
+const OTYPES=[['email','Email'],['whatsapp','WhatsApp'],['linkedin','LinkedIn'],['pitch','Sales pitch'],['proposal','Proposal']];
+const OUTCOMES=[['interested','Interested'],['meeting','Meeting booked'],['later','Not now, maybe later'],['no','Not interested'],['other','Something else']];
+function dealMsgs(id){return MS().filter(m=>m.deal===id).sort((a,b)=>(a.at||a.sendAt||'')<(b.at||b.sendAt||'')?-1:1)}
+function dealStatus(x){const ms=dealMsgs(x.id),sent=ms.filter(m=>m.status!=='scheduled');
+  const due=ms.filter(m=>m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY);
+  const last=sent[sent.length-1];
+  if(due.length)return{k:'due',t:'Follow-up due',tone:'warn',o:0};
+  if(last&&last.dir==='in')return{k:'replied',t:'Replied',tone:'good',o:1};
+  if(!last)return{k:'new',t:'Not contacted',tone:'accent',o:2};
+  const d=days(parseISO(last.at),TODAY);return{k:'waiting',t:d<=0?'Sent today':'Waiting · '+d+'d',tone:'',o:3}}
+function outStats(){const ms=MS(),wk=addDays(TODAY,-7);
+  const sent=ms.filter(m=>m.dir==='out'&&m.status==='sent'&&parseISO(m.at)>=wk).length;
+  const contacted=new Set(ms.filter(m=>m.dir==='out'&&m.status==='sent').map(m=>m.deal)),replied=new Set(ms.filter(m=>m.dir==='in').map(m=>m.deal));
+  const due=ms.filter(m=>m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY).length;
+  const open=DL().filter(x=>x.stage!=='won'&&x.stage!=='lost');
+  return{sent,rate:contacted.size?[...contacted].filter(d=>replied.has(d)).length/contacted.size:null,due,fresh:open.filter(x=>!dealMsgs(x.id).length).length}}
+function waLink(phone,text){let n=String(phone||'').replace(/\D/g,'');if(n.length===10)n='91'+n;return 'https://wa.me/'+n+'?text='+encodeURIComponent(text||'')}
+function gmailLink(to,su,body){return 'https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to||'')+'&su='+encodeURIComponent(su||'')+'&body='+encodeURIComponent(body||'')}
+function compFor(x){UI.comp=UI.comp&&UI.comp.deal===x.id?UI.comp:{deal:x.id,type:x.email?'email':x.phone?'whatsapp':'email',subject:'',body:'',goal:'',tone:'Warm',when:iso(addDays(TODAY,3))};return UI.comp}
+function outPrompt(x,c){
+  const p=S.profile,L=LD(),ms=dealMsgs(x.id).filter(m=>m.status!=='scheduled').slice(-6);
+  const me=(p.name||'the founder');
+  const hist=ms.length?ms.map(m=>`${m.dir==='in'?'THEM':'US'} (${OCH[m.ch]||m.ch}, ${m.at}): ${m.subject?m.subject+' — ':''}${(m.body||'').slice(0,700)}`).join('\n'):'No messages yet. This is the first contact.';
+  const goal=c.goal||({lead:'a 15-minute call',talk:'a short meeting or demo',meet:'agreement to see a proposal',prop:'a decision on the proposal'}[x.stage]||'a reply');
+  const about=`OUR COMPANY: ${p.company}, founded by ${me}. Sector: ${p.sector}. What we sell: ${L.in.sell||p.sector}. Who usually buys: ${L.in.buyers||'not given'}. Offer we can make: ${L.in.offer||'none given'}.${L.out.icp?'\nOur ideal customer profile (for context):\n'+L.out.icp.slice(0,1200):''}
+PROSPECT: ${x.n}. Contact: ${x.person||'unknown name'}${x.role?', '+x.role:''}. Stage: ${PST[x.stage][1]}. Likely deal value: ${x.val?inr(x.val):'unknown'}. Our notes: ${x.step||'none'}.
+CONVERSATION SO FAR:\n${hist}
+WHAT WE WANT FROM THIS MESSAGE: ${goal}. TONE: ${c.tone||'Warm'}.`;
+  const sign=`Sign off as ${me}, ${p.company}.`;
+  const T={
+   email:`Write ${ms.length?'the next email in this conversation':'a first email to this prospect'}. First line exactly "Subject: ..." (under 8 words, no clickbait), then a blank line, then the body. Under 130 words. Open with something specific to them, name the problem we solve, one line of proof, then one clear, easy ask. ${sign}`,
+   whatsapp:`Write ${ms.length?'the next WhatsApp message in this conversation':'a first WhatsApp message to this prospect'}. Under 70 words, friendly and plain, no subject line, no bullet points, at most one emoji, end with one easy question. ${sign}`,
+   linkedin:`Write a LinkedIn connection note under 280 characters, then a blank line, then "Message after they accept:" and a follow-up message under 90 words. ${sign}`,
+   pitch:`Write a 60-second sales pitch tailored to this prospect that the founder can say on a call or send as a message: a hook about their situation, the problem, our solution, one proof point, the offer, and the ask. Under 170 words.`,
+   proposal:`Write a one-page business proposal for this prospect. Use these sections, each starting with a bold label on its own line: **Summary**, **What you need**, **What we will deliver**, **Pricing** (use ${x.val?inr(x.val)+' a year as the guide':'[price] as a placeholder'}), **Timeline**, **Why ${p.company}**, **Next steps**. Keep each section to 1–3 short lines or "- " bullets. Under 320 words.`
+  };
+  return `${about}\n\nTASK: ${T[c.type]}\nNever mention the founder's internal finances, runway or funding. Never invent facts, clients, awards or numbers about us; use [placeholders] where a detail is missing.`;
+}
+async function outWrite(){
+  const c=UI.comp,x=DL().find(d=>d.id===c.deal);if(!x||UI.gen)return;
+  UI.gen='comp';c.body='';rerender();let text='';
+  try{
+    text=await OUT_AI(outPrompt(x,c),t=>{const el=document.getElementById('comp-body');if(el){el.value=t;el.scrollTop=el.scrollHeight}});
+    const m=c.type==='email'&&/^\s*Subject:\s*(.+)\n/i.exec(text);
+    if(m){c.subject=m[1].trim();text=text.slice(m.index+m[0].length).replace(/^\s*\n/,'')}
+    c.body=text.trim();
+  }catch(err){
+    if(err&&err.noAI){UI.outNoAI=true;c.body=''}
+    else{c.body=text;toast((err&&err.msg)||'The AI couldn’t write that. Try again.')}
+  }
+  UI.gen=null;rerender();
+}
+function logMsg(x,m){const c=UI.comp;const rec={id:uid(),deal:x.id,dir:'out',status:'sent',at:iso(TODAY),...m};
+  if(c&&c.from){const old=MS().find(q=>q.id===c.from);if(old)Object.assign(old,rec,{id:old.id});c.from=null}else MS().push(rec);
+  if(x.stage==='lead'&&rec.ch!=='note')x.stage='talk';
+  if(!x.next||parseISO(x.next)<=TODAY)x.next=iso(addDays(TODAY,3));
+  save();}
+function vOutreach(){
+  const p=S.profile,st=outStats();const open=DL().filter(x=>x.stage!=='lost');
+  const f=UI.outFilter||'all';
+  const list=open.map(x=>({x,s:dealStatus(x)})).filter(r=>f==='all'||r.s.k===f).sort((a,b)=>a.s.o-b.s.o||(b.x.val||0)-(a.x.val||0));
+  if(!UI.outDeal||!DL().some(d=>d.id===UI.outDeal))UI.outDeal=(list[0]||{x:{}}).x.id;
+  const x=DL().find(d=>d.id===UI.outDeal);
+  return `<header class="pagehead"><div><div class="eyebrow">Outreach · ${esc(p.company)}</div><h1 style="margin-top:8px">Write to leads. Follow up. Win them.</h1><p class="lede">Pick a lead, let the AI write the email, WhatsApp message, pitch or proposal, send it, and keep every reply and follow-up in one place.</p></div></header>
+  <div class="tiles4">
+   <div class="tile"><div class="k"><i></i>Sent in the last 7 days</div><div class="v">${st.sent}</div></div>
+   <div class="tile"><div class="k"><i style="background:var(--good)"></i>Reply rate</div><div class="v">${st.rate==null?'—':Math.round(st.rate*100)+'%'}</div><div class="small muted">Leads who wrote back</div></div>
+   <div class="tile ${st.due?'hot':''}"><div class="k"><i style="background:var(--warn)"></i>Follow-ups due</div><div class="v">${st.due}</div></div>
+   <div class="tile"><div class="k"><i style="background:var(--accent)"></i>Not contacted yet</div><div class="v">${st.fresh}</div></div>
+  </div>
+  ${UI.outNoAI?`<div class="alert warn">${ICON.warn}<div>${OUT_NOAI_MSG}</div></div>`:''}
+  ${open.length?`<div class="obox">
+   <aside class="olist card">
+    <div class="filters">${[['all','All'],['due','Due'],['replied','Replied'],['new','Not contacted'],['waiting','Waiting']].map(([k,n])=>`<button class="chip" data-act="out-filter" data-v="${k}" aria-pressed="${f===k}">${n}</button>`).join('')}</div>
+    <div class="ol">${list.map(({x:d,s})=>`<button class="oli ${d.id===UI.outDeal?'on':''}" data-act="out-open" data-id="${d.id}"><span class="avatar sm" style="background:${COLORS[(d.n||'').length%COLORS.length]}">${esc(initials(d.n))}</span><span class="grow"><b>${esc(d.n)}</b><span class="small muted">${esc(d.person||'No contact yet')}${d.val?' · '+inr(d.val):''}</span></span><span class="pill ${s.tone}">${s.t}</span></button>`).join('')||'<div class="empty" style="font-size:13px">No leads in this filter.</div>'}</div>
+   </aside>
+   ${x?outDetail(x):''}
+  </div>`:`<section class="card"><div class="es"><div class="es-ic accent">${ICON.team}</div><b>Add a lead to start writing</b><span>Find prospects in Find leads, or add a deal in Customers. Then come back here to contact them.</span><button class="btn primary" data-act="nav" data-v="leads">Find leads</button></div></section>`}
+  <p class="small muted">Write only to people with a genuine business reason to hear from you, say who you are, and stop when someone asks you to. Emails sent from Growth Planner go out with your name, replies come to your own inbox, and every email includes a way to opt out.</p>`;
+}
+function outDetail(x){
+  const c=compFor(x),ms=dealMsgs(x.id),busy=UI.gen==='comp';
+  const isMsg=['email','whatsapp','linkedin'].includes(c.type);
+  const pend=ms.filter(m=>m.status==='scheduled'),lastOut=[...ms].reverse().find(m=>m.dir==='out'&&m.status==='sent');
+  const needFU=lastOut&&!pend.length&&!ms.some(m=>m.dir==='in'&&m.at>=lastOut.at);
+  const actions=c.type==='email'?`${OUT_CAN_EMAIL()?`<button class="btn primary" data-act="out-send-email" ${!x.email||busy?'disabled':''}>Send email</button>`:''}<a class="btn ${OUT_CAN_EMAIL()?'':'primary'}" href="${gmailLink(x.email,c.subject,c.body)}" target="_blank" rel="noopener" id="out-gmail">Open in Gmail ↗</a>${OUT_CAN_EMAIL()?'':`<button class="btn ghost" data-act="out-mark">I sent it</button>`}`
+   :c.type==='whatsapp'?`${x.phone?`<a class="btn primary" href="${waLink(x.phone,c.body)}" target="_blank" rel="noopener" id="out-wa">Open in WhatsApp ↗</a>`:`<button class="btn primary" data-act="out-need-phone">Open in WhatsApp</button>`}<button class="btn ghost" data-act="out-mark">I sent it</button>`
+   :c.type==='linkedin'?`<button class="btn" data-act="out-copy">Copy</button><a class="btn" href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent((x.person||'')+' '+x.n)}" target="_blank" rel="noopener">Find them on LinkedIn ↗</a><button class="btn ghost" data-act="out-mark">I sent it</button>`
+   :`<button class="btn" data-act="out-copy">Copy</button><button class="btn" data-act="out-to-email">Put it in an email</button><button class="btn ghost" data-act="out-save">Save to this conversation</button>`;
+  return `<section class="odetail card">
+   <div class="spread" style="align-items:flex-start"><div style="min-width:0"><div class="eyebrow">${PST[x.stage][1]}${x.val?' · '+inr(x.val):''}</div><h2 style="margin-top:4px">${esc(x.n)}</h2></div><button class="btn sm ghost" data-act="nav" data-v="sales">Open in Customers ${ICON.arrow}</button></div>
+   <div class="ocontact">
+    <div class="field"><label for="oc-p-${x.id}">Contact person</label><input class="input" id="oc-p-${x.id}" data-arr="deals" data-id="${x.id}" data-f="person" value="${esc(x.person||'')}" placeholder="Name"></div>
+    <div class="field"><label for="oc-r-${x.id}">Role</label><input class="input" id="oc-r-${x.id}" data-arr="deals" data-id="${x.id}" data-f="role" value="${esc(x.role||'')}" placeholder="e.g. Head of F&B"></div>
+    <div class="field"><label for="oc-e-${x.id}">Email</label><input class="input" type="email" id="oc-e-${x.id}" data-arr="deals" data-id="${x.id}" data-f="email" value="${esc(x.email||'')}" placeholder="name@company.com"></div>
+    <div class="field"><label for="oc-w-${x.id}">WhatsApp</label><input class="input" type="tel" id="oc-w-${x.id}" data-arr="deals" data-id="${x.id}" data-f="phone" value="${esc(x.phone||'')}" placeholder="10-digit mobile number"></div>
+   </div>
+   <div class="ocomp">
+    <div class="filters" role="tablist" aria-label="What to write">${OTYPES.map(([k,n])=>`<button class="chip" data-act="out-type" data-v="${k}" aria-pressed="${c.type===k}">${n}</button>`).join('')}</div>
+    <div class="grid g-2" style="gap:10px">
+     <div class="field"><label for="comp-goal">What do you want from them?</label><input class="input" id="comp-goal" value="${esc(c.goal)}" placeholder="${esc({lead:'A 15-minute call',talk:'A short meeting or demo',meet:'Agree to see a proposal',prop:'A decision on the proposal'}[x.stage]||'A reply')}"></div>
+     <div class="field"><label for="comp-tone">Tone</label><select class="input" id="comp-tone">${['Warm','Professional','Short and direct'].map(t=>`<option ${c.tone===t?'selected':''}>${t}</option>`).join('')}</select></div>
+    </div>
+    ${c.type==='email'?`<div class="field"><label for="comp-subj">Subject</label><input class="input" id="comp-subj" value="${esc(c.subject)}" placeholder="The AI writes this, or type your own"></div>`:''}
+    <div class="field"><label for="comp-body">${{email:'Email',whatsapp:'WhatsApp message',linkedin:'LinkedIn note and message',pitch:'Sales pitch',proposal:'Proposal'}[c.type]}</label><textarea class="input" id="comp-body" rows="${c.type==='proposal'?14:8}" placeholder="Press “Write it with AI”, or type your own.">${esc(c.body)}</textarea></div>
+    ${c.type==='email'&&!x.email?`<p class="small" style="color:var(--warn)">Add their email above to send this.</p>`:''}${c.type==='whatsapp'&&!x.phone?`<p class="small" style="color:var(--warn)">Add their WhatsApp number above to open the chat.</p>`:''}
+    <div class="row">${busy?`<button class="btn" data-act="lead-stop">Stop</button>`:`<button class="btn ${c.body?'':'primary'}" data-act="out-write" ${UI.gen?'disabled':''}>${ICON.advisor.replace('<svg','<svg width="16" height="16"')} ${c.body?'Write it again':'Write it with AI'}</button>`}${actions}</div>
+    ${isMsg?`<div class="row osched"><label class="small muted" for="comp-when">Or send later:</label><input class="input" type="date" id="comp-when" value="${c.when}" min="${iso(TODAY)}"><button class="btn sm" data-act="out-schedule">Schedule</button></div>`:''}
+   </div>
+   <div class="otl">
+    <div class="spread"><h3>Conversation</h3><div class="row" style="gap:6px">${needFU?`<button class="btn sm" data-act="out-fu">Add day-3 and day-7 follow-ups</button>`:''}<button class="btn sm primary" data-act="out-reply">Log their reply</button></div></div>
+    ${ms.length?`<ol class="tl">${ms.slice().reverse().map(m=>{const due=m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY;return `<li class="${m.dir} ${m.status} ${due?'due':''}">
+      <div class="tlh"><span class="tag">${OCH[m.ch]||m.ch}${m.kind&&m.kind!=='message'?' · '+(m.kind==='pitch'?'Pitch':'Proposal'):''}</span><span class="small muted">${m.status==='scheduled'?(due?'<b style="color:var(--warn)">Due today</b>':'Scheduled for '+fmtD(parseISO(m.sendAt))):(m.dir==='in'?'They replied':'You sent')+' · '+fmtD(parseISO(m.at))}${m.outcome?' · '+esc((OUTCOMES.find(o=>o[0]===m.outcome)||[,''])[1]):''}${m.via==='app'?' · sent from Growth Planner':''}</span></div>
+      ${m.subject?`<div class="t">${esc(m.subject)}</div>`:''}<div class="tlb">${md((m.body||'').slice(0,700)+((m.body||'').length>700?'…':''))}</div>
+      ${m.status==='scheduled'?`<div class="row" style="gap:6px;margin-top:6px"><button class="btn sm ${due?'primary':''}" data-act="out-load" data-id="${m.id}">${due?'Send it now':'Edit or send now'}</button><button class="btn sm ghost" data-act="out-cancel" data-id="${m.id}">Cancel</button></div>`:''}
+      ${m.dir==='in'?`<button class="btn sm" style="margin-top:6px" data-act="out-answer" data-id="${m.id}">Write a reply with AI</button>`:''}
+     </li>`}).join('')}</ol>`:`<div class="empty" style="font-size:13px">No messages yet. Write the first one above.</div>`}
+   </div>
+  </section>`;
+}
+function openReplyLog(x){
+  openLayer(`<div><div class="eyebrow">Log a reply</div><h2 style="margin-top:4px">${esc(x.n)}</h2><p class="small muted" style="margin-top:4px">Paste what they said, so the AI can write your next message and This week knows where you stand.</p></div>
+   <form class="stack" data-form="out-reply" data-id="${x.id}">
+    <div class="field"><label for="rp-ch">Where did they reply?</label><select class="input" id="rp-ch" name="ch">${Object.entries(OCH).filter(([k])=>k!=='note').map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div>
+    <div class="field"><label for="rp-b">What did they say?</label><textarea class="input" id="rp-b" name="b" rows="5" required placeholder="Paste their message or a short summary of the call"></textarea></div>
+    <div class="field"><label for="rp-o">Where does that leave you?</label><select class="input" id="rp-o" name="o">${OUTCOMES.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></div>
+    <p class="small muted">Any follow-ups you scheduled for this lead will be cancelled, so you don’t send a reminder after they’ve answered.</p>
+    <div class="row"><button class="btn primary">Save reply</button><button type="button" class="btn ghost" data-act="close-layer">Cancel</button></div>
+   </form>`);setTimeout(()=>document.getElementById('rp-b')?.focus(),50);
+}
+function outDueMoves(c){
+  const ms=MS(),due=ms.filter(m=>m.status==='scheduled'&&parseISO(m.sendAt)<=TODAY);
+  if(due.length)c.push({t:`Send ${due.length} follow-up${due.length===1?'':'s'} due today`,why:`To ${[...new Set(due.map(m=>(DL().find(d=>d.id===m.deal)||{}).n).filter(Boolean))].slice(0,3).join(', ')}. Follow-ups win more deals than first messages.`,tag:'Sales',go:'outreach',pr:82,how:['Open Outreach and filter by “Due”.','Check each follow-up still makes sense, then send it.','If they already replied, log the reply instead.']});
+  const lastIn=DL().map(d=>{const m=dealMsgs(d.id).filter(q=>q.status!=='scheduled');const l=m[m.length-1];return l&&l.dir==='in'?{d,l}:null}).filter(Boolean).sort((a,b)=>(b.d.val||0)-(a.d.val||0))[0];
+  if(lastIn)c.push({t:`Reply to ${lastIn.d.n}`,why:`They wrote back on ${fmtD(parseISO(lastIn.l.at))}. A quick answer keeps the deal warm.`,tag:'Sales',go:'outreach',pr:84,how:['Open Outreach and pick this lead.','Press “Write a reply with AI” under their message.','Check it, then send it.']});
 }
 
 /* ---------- unit economics ---------- */
@@ -1358,6 +1533,7 @@ function onInput(e,live){
     if(el.dataset.f==='n'){r.n=el.value;save();if(!live)rerender();return}
     if(live)return;const P=PIPES[el.dataset.gp];r.amt=el.value===''?0:(P.unit==='lakh'?Math.round(+el.value*1e5):+el.value);save();rerender();return}
   if(el.dataset.ten!==undefined){if(live&&el.dataset.f==='n'){S.first10[+el.dataset.ten].n=el.value;save();return}S.first10[+el.dataset.ten][el.dataset.f]=el.value;save();rerender();return}
+  if(UI.comp&&['comp-goal','comp-tone','comp-subj','comp-body','comp-when'].includes(el.id)){UI.comp[{'comp-goal':'goal','comp-tone':'tone','comp-subj':'subject','comp-body':'body','comp-when':'when'}[el.id]]=el.value;const x=DL().find(d=>d.id===UI.comp.deal);const g=document.getElementById('out-gmail');if(g&&x)g.href=gmailLink(x.email,UI.comp.subject,UI.comp.body);const w=document.getElementById('out-wa');if(w&&x&&x.phone)w.href=waLink(x.phone,UI.comp.body);return}
   if(el.id==='chase-msg'){const a=document.getElementById('chase-wa');if(a)a.href='https://wa.me/?text='+encodeURIComponent(el.value);return}
   if(el.id==='ask'){UI.draft=el.value;el.style.height='auto';el.style.height=Math.min(180,el.scrollHeight)+'px'}
 }
@@ -1377,6 +1553,10 @@ document.addEventListener('submit',e=>{
   if(k==='task'){S.items.push({id:uid(),title:fd.get('t'),kind:'task',owner:fd.get('o'),due:fd.get('d')||iso(addDays(TODAY,7)),status:'todo',comments:[]});save();render();toast(`Assigned to ${member(fd.get('o')).name.split(' ')[0]}`)}
   if(k==='comment'){const it=S.items.find(i=>i.id===f.dataset.id);it.comments.push({by:'me',t:fd.get('c'),at:iso(TODAY)});save();render()}
   if(k==='ask'){ask(fd.get('q')||'')}
+  if(k==='out-reply'){const x=DL().find(d=>d.id===f.dataset.id);if(!x)return;const o=fd.get('o');MS().push({id:uid(),deal:x.id,dir:'in',ch:fd.get('ch'),status:'logged',at:iso(TODAY),outcome:o,body:String(fd.get('b')||'').trim()});
+    const n0=MS().length;S.msgs=MS().filter(m=>!(m.deal===x.id&&m.status==='scheduled'));const cut=n0-S.msgs.length;
+    if(o==='interested'&&x.stage==='lead')x.stage='talk';if(o==='meeting'){if(['lead','talk'].includes(x.stage))x.stage='meet';x.step='Prepare for the meeting'}if(o==='no')x.stage='lost';x.next=iso(addDays(TODAY,o==='later'?30:2));
+    UI.comp=null;save();closeLayer();render();toast(o==='no'?'Saved. Marked as lost.':`Reply saved${cut?`. ${cut} scheduled follow-up${cut===1?'':'s'} cancelled`:''}. Press “Write a reply with AI” to answer.`)}
   if(k==='lead'){const n=(fd.get('n')||'').trim();if(!n)return;const c=(fd.get('c')||'').trim();DL().push({id:uid(),n,val:+fd.get('v')||0,stage:'lead',step:c?'Contact: '+c:'Find the decision maker',next:iso(addDays(TODAY,2)),src:'Lead finder'});save();render();document.getElementById('nl-n')?.focus();toast(`${n} added to Customers`)}
   if(k==='deal'){const n=(fd.get('n')||'').trim();if(!n)return;DL().push({id:uid(),n,val:+fd.get('v')||0,stage:'lead',step:'',next:iso(addDays(TODAY,3)),src:fd.get('s')});save();render();document.getElementById('nd-n')?.focus();toast('Deal added with a follow-up in 3 days')}
   if(k==='gp'){const kk=f.dataset.k,P=PIPES[kk];const n=(fd.get('n')||'').trim();if(!n)return;rows(kk).push({id:uid(),n,s:P.stages[0],amt:0});save();rerender();document.getElementById('gp-new-'+kk)?.focus();toast('Added. Move it along as things progress.')}
@@ -1413,6 +1593,27 @@ document.addEventListener('click',async e=>{
    case 'toggle-item':{const it=S.items.find(i=>i.id===id);it.status=it.status==='done'?'todo':'done';save();rerender();break}
    case 'idea-check':S.ideaChecks[b.dataset.k]=!S.ideaChecks[b.dataset.k];save();rerender();break;
    case 'scen-clear':S.scen.hire.on=S.scen.late.on=S.scen.drop.on=false;save();render();break;
+   case 'out-open':{UI.outDeal=id;UI.comp=null;UI.view='grow';UI.growTab='outreach';try{history.replaceState(null,'','#outreach')}catch(_){}render();window.scrollTo(0,0);break}
+   case 'out-filter':UI.outFilter=b.dataset.v;rerender();break;
+   case 'out-type':{const c=UI.comp;if(!c)break;if(c.type!==b.dataset.v){c.type=b.dataset.v;c.body='';c.from=null}rerender();break}
+   case 'out-write':outWrite();break;
+   case 'out-need-phone':toast('Add their WhatsApp number first.');document.getElementById('oc-w-'+UI.outDeal)?.focus();break;
+   case 'out-send-email':{const c=UI.comp,x=DL().find(d=>d.id===c.deal);if(!x)break;if(S.sample){toast('This is the sample startup, so no email is sent.');break}if(!x.email){toast('Add their email first.');break}if(!c.body.trim()){toast('Write the email first.');break}if(!c.subject.trim()){toast('Add a subject line.');break}
+     b.disabled=true;try{await OUT_SEND_EMAIL(x,c);logMsg(x,{ch:'email',subject:c.subject,body:c.body,via:'app'});UI.comp=null;render();toast(`Email sent to ${x.person||x.email}. Replies go to your inbox.`)}catch(err){b.disabled=false;toast((err&&err.msg)||'The email couldn’t be sent.')}break}
+   case 'out-mark':{const c=UI.comp,x=DL().find(d=>d.id===c.deal);if(!x)break;if(!c.body.trim()){toast('Write the message first.');break}logMsg(x,{ch:c.type,subject:c.type==='email'?c.subject:'',body:c.body});UI.comp=null;render();toast('Logged. Add follow-ups so you don’t forget.');break}
+   case 'out-copy':{const t=(UI.comp&&UI.comp.body)||'';if(!t){toast('Nothing to copy yet.');break}try{await navigator.clipboard.writeText(t);toast('Copied')}catch(_){const el=document.getElementById('comp-body');el&&(el.focus(),el.select());toast('Selected. Press Ctrl+C or Cmd+C to copy.')}break}
+   case 'out-to-email':{const c=UI.comp,x=DL().find(d=>d.id===c.deal);if(!c.body){toast('Write it first.');break}c.subject=c.subject||(c.type==='proposal'?'Proposal for '+x.n:'An idea for '+x.n);c.type='email';rerender();break}
+   case 'out-save':{const c=UI.comp,x=DL().find(d=>d.id===c.deal);if(!c.body){toast('Write it first.');break}MS().push({id:uid(),deal:x.id,dir:'out',ch:'note',kind:c.type,status:'sent',at:iso(TODAY),subject:c.type==='proposal'?'Proposal':'Sales pitch',body:c.body});save();rerender();toast('Saved to the conversation');break}
+   case 'out-schedule':{const c=UI.comp,x=DL().find(d=>d.id===c.deal);if(!c.body.trim()){toast('Write the message first.');break}const rec={deal:x.id,dir:'out',ch:c.type,status:'scheduled',sendAt:c.when||iso(addDays(TODAY,3)),subject:c.type==='email'?c.subject:'',body:c.body};
+     const old=c.from&&MS().find(q=>q.id===c.from);if(old)Object.assign(old,rec);else MS().push({id:uid(),...rec});UI.comp=null;save();render();toast(`Scheduled for ${fmtD(parseISO(rec.sendAt))}. This week will remind you.`);break}
+   case 'out-fu':{const x=DL().find(d=>d.id===UI.outDeal);const last=[...dealMsgs(x.id)].reverse().find(m=>m.dir==='out'&&m.status==='sent');if(!x||!last)break;const p=S.profile,me=(p.name||'').split(' ')[0]||'Team',nm=(x.person||'').split(' ')[0]||'there',ch=last.ch==='note'?'email':last.ch,su=last.subject?(/^Re:/i.test(last.subject)?last.subject:'Re: '+last.subject):'';
+     MS().push({id:uid(),deal:x.id,dir:'out',ch,status:'scheduled',sendAt:iso(addDays(TODAY,3)),subject:ch==='email'?su:'',body:`Hi ${nm}, following up on my message from ${fmtD(parseISO(last.at))}. Would a quick 15-minute call this week work for you?\n\n${me}, ${p.company}`},
+      {id:uid(),deal:x.id,dir:'out',ch,status:'scheduled',sendAt:iso(addDays(TODAY,7)),subject:ch==='email'?su:'',body:`Hi ${nm}, I’ll keep this short. If this isn’t a priority right now, no problem at all. Just tell me and I won’t follow up again. If it is, I’m happy to send samples and prices.\n\n${me}, ${p.company}`});
+     save();rerender();toast('Two follow-ups scheduled. They’re cancelled if the lead replies.');break}
+   case 'out-load':{const m=MS().find(q=>q.id===id);if(!m)break;UI.outDeal=m.deal;UI.comp={deal:m.deal,type:['email','whatsapp','linkedin'].includes(m.ch)?m.ch:'email',subject:m.subject||'',body:m.body||'',goal:'',tone:'Warm',when:m.sendAt||iso(addDays(TODAY,3)),from:m.id};rerender();document.getElementById('comp-body')?.scrollIntoView({behavior:'smooth',block:'center'});break}
+   case 'out-cancel':{S.msgs=MS().filter(q=>q.id!==id);save();rerender();toast('Follow-up cancelled');break}
+   case 'out-reply':{const x=DL().find(d=>d.id===UI.outDeal);if(x)openReplyLog(x);break}
+   case 'out-answer':{const m=MS().find(q=>q.id===id);if(!m)break;const last=[...dealMsgs(m.deal)].reverse().find(q=>q.dir==='out'&&q.subject);UI.outDeal=m.deal;UI.comp={deal:m.deal,type:['email','whatsapp','linkedin'].includes(m.ch)?m.ch:'email',subject:last?(/^Re:/i.test(last.subject)?last.subject:'Re: '+last.subject):'',body:'',goal:'Answer what they asked and agree the next step',tone:'Warm',when:iso(addDays(TODAY,3))};rerender();document.getElementById('comp-body')?.scrollIntoView({behavior:'smooth',block:'center'});outWrite();break}
    case 'chase':openChase(id);break;
    case 'chase-tone':openChase(UI.chase.id,b.dataset.v);break;
    case 'chase-copy':{const t=document.getElementById('chase-msg');try{await navigator.clipboard.writeText(t.value);toast('Copied. Paste it into WhatsApp or email.')}catch(_){t.focus();t.select();toast('Selected. Press Ctrl+C or Cmd+C to copy.')}break}
@@ -1562,7 +1763,7 @@ let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>
     const r=await fetch('/api/state',{cache:'no-store'});
     if(r.status===401){location.href='/login';return}
     const j=await r.json();
-    serverVersion=j.version;S=j.state;GP.role=j.role;GP.user=j.user;GP.zoho=j.zoho;
+    serverVersion=j.version;S=j.state;GP.role=j.role;GP.user=j.user;GP.zoho=j.zoho;GP.email=j.email;
   }catch(e){app.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;text-align:center;padding:16px">Could not load your plan. Check your connection and refresh.</div>';return}
   render();paintSync();
   const zq=new URLSearchParams(location.search).get('zoho');
